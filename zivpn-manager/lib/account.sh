@@ -190,6 +190,16 @@ add_account() {
 
     echo ""
     print_success "Akun '${username}' berhasil ditambahkan!"
+    echo ""
+    echo -e "  ${BOLD}Info akun untuk diberikan ke pengguna:${RESET}"
+    echo -e "  ┌────────────────────────────────────────────┐"
+    echo -e "  │  Host     : ${CYAN}$(get_server_host)${RESET}"
+    echo -e "  │  Port     : ${WHITE}6000-19999 (UDP)${RESET}"
+    echo -e "  │  Username : ${WHITE}${username}${RESET}"
+    echo -e "  │  Password : ${CYAN}${password}${RESET}"
+    echo -e "  │  Dibuat   : ${GRAY}$(format_date "$created_at")${RESET}"
+    echo -e "  │  Expired  : ${YELLOW}$(format_date "$expired_at")${RESET}"
+    echo -e "  └────────────────────────────────────────────┘"
     press_enter
 }
 
@@ -404,12 +414,15 @@ create_trial_account() {
     echo ""
     print_success "Akun trial '${username}' berhasil dibuat!"
     echo ""
-    echo -e "  ${BOLD}Bagikan info berikut ke pengguna:${RESET}"
-    echo -e "  ┌─────────────────────────────────────┐"
-    echo -e "  │  Username : ${CYAN}${username}${RESET}"
+    echo -e "  ${BOLD}Info akun trial untuk diberikan ke pengguna:${RESET}"
+    echo -e "  ┌────────────────────────────────────────────┐"
+    echo -e "  │  Host     : ${CYAN}$(get_server_host)${RESET}"
+    echo -e "  │  Port     : ${WHITE}6000-19999 (UDP)${RESET}"
+    echo -e "  │  Username : ${WHITE}${username}${RESET}"
     echo -e "  │  Password : ${CYAN}${password}${RESET}"
-    echo -e "  │  Expired  : ${YELLOW}$(format_date "$expired_at")${RESET}"
-    echo -e "  └─────────────────────────────────────┘"
+    echo -e "  │  Dibuat   : ${GRAY}$(format_date "$created_at")${RESET}"
+    echo -e "  │  Expired  : ${YELLOW}$(format_date "$expired_at")${RESET} (${days} hari)"
+    echo -e "  └────────────────────────────────────────────┘"
     press_enter
 }
 

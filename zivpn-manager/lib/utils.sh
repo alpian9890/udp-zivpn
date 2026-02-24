@@ -26,22 +26,79 @@ divider() {
     echo -e "${GRAY}$(printf '─%.0s' {1..60})${RESET}"
 }
 
+# --- Server info helpers -----------------------------------------------------
+
+MANAGER_CONFIG="/etc/zivpn/manager.conf"
+
+# Get IPv4 public address only
+get_public_ipv4() {
+    local ip
+    # Try multiple sources, force IPv4
+    ip=$(curl -4 -s --max-time 4 https://api.ipify.org 2>/dev/null)
+    if [[ -z "$ip" ]]; then
+        ip=$(curl -4 -s --max-time 4 https://ifconfig.me 2>/dev/null)
+    fi
+    if [[ -z "$ip" ]]; then
+        # Fallback: get first IPv4 from hostname -I
+        ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+    fi
+    echo "${ip:-N/A}"
+}
+
+# Get custom domain (from manager.conf), or empty string if not set
+get_custom_domain() {
+    if [[ -f "$MANAGER_CONFIG" ]]; then
+        grep -E '^CUSTOM_DOMAIN=' "$MANAGER_CONFIG" 2>/dev/null | cut -d'=' -f2 | tr -d '"'
+    fi
+}
+
+# Get host to display: domain if set, otherwise IPv4
+get_server_host() {
+    local domain
+    domain=$(get_custom_domain)
+    if [[ -n "$domain" ]]; then
+        echo "$domain"
+    else
+        get_public_ipv4
+    fi
+}
+
+# Save custom domain to manager.conf
+set_custom_domain() {
+    local domain="$1"
+    touch "$MANAGER_CONFIG"
+    if grep -q '^CUSTOM_DOMAIN=' "$MANAGER_CONFIG" 2>/dev/null; then
+        sed -i "s|^CUSTOM_DOMAIN=.*|CUSTOM_DOMAIN=\"${domain}\"|" "$MANAGER_CONFIG"
+    else
+        echo "CUSTOM_DOMAIN=\"${domain}\"" >> "$MANAGER_CONFIG"
+    fi
+}
+
 # --- Header ------------------------------------------------------------------
 print_header() {
     clear
-    local server_ip
-    server_ip=$(curl -s --max-time 3 ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+    local host domain
+    domain=$(get_custom_domain)
+    if [[ -n "$domain" ]]; then
+        host="$domain"
+    else
+        host=$(get_public_ipv4)
+    fi
+
     local total active expired
     total=$(jq '.accounts | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
     active=$(jq '[.accounts[] | select(.status == "active")] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
     expired=$(jq '[.accounts[] | select(.status == "expired")] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
+
+    local host_label="IP Server"
+    [[ -n "$domain" ]] && host_label="Domain   "
 
     echo -e "${BLUE}${BOLD}"
     echo "  ╔══════════════════════════════════════════════════════════╗"
     echo "  ║              ZiVPN Account Manager v1.0                  ║"
     echo "  ╚══════════════════════════════════════════════════════════╝"
     echo -e "${RESET}"
-    echo -e "  ${GRAY}Server IP  :${RESET} ${WHITE}${server_ip}${RESET}"
+    echo -e "  ${GRAY}${host_label} :${RESET} ${WHITE}${host}${RESET}"
     echo -e "  ${GRAY}Total Akun :${RESET} ${WHITE}${total}${RESET}  |  ${GREEN}Aktif: ${active}${RESET}  |  ${RED}Expired: ${expired}${RESET}"
     divider
 }
