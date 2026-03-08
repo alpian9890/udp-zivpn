@@ -69,6 +69,7 @@ zivpn-manager help <perintah>
 | `restart` | `[8]` | Restart service |
 | `info` | `[i]` | Info server & konfigurasi |
 | `help` | `[h]` | Tampilkan bantuan |
+| `update` | `[u]` | Cek dan install update dari GitHub |
 | `version` | — | Tampilkan versi |
 | `expire-check` | — | Cek akun expired (cron) |
 
@@ -289,8 +290,27 @@ Log: `/var/log/zivpn-expire.log`
         ├── config.sh        Sync config & service control
         ├── account.sh       Manajemen akun
         ├── backup.sh        Backup & restore
-        └── help.sh          Sistem bantuan
+        ├── help.sh          Sistem bantuan
+        └── update.sh        Cek & install update
 ```
+
+---
+
+### Update
+
+ZiVPN Manager bisa diperbarui langsung dari terminal tanpa perlu install ulang.
+
+```bash
+zivpn-manager update
+```
+
+Cara kerja:
+1. Membandingkan versi lokal dengan versi terbaru di GitHub
+2. Jika ada versi baru, menampilkan pilihan untuk update atau skip
+3. Jika memilih update, semua file manager diunduh dan diganti otomatis
+4. Backup versi lama dibuat otomatis sebelum update
+
+> Data akun (`accounts.json`) dan konfigurasi tidak terpengaruh oleh update.
 
 ---
 
