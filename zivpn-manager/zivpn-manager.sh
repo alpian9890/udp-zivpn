@@ -10,6 +10,8 @@ ACCOUNTS_FILE="/etc/zivpn/accounts.json"
 source "$MANAGER_DIR/lib/utils.sh"
 source "$MANAGER_DIR/lib/config.sh"
 source "$MANAGER_DIR/lib/account.sh"
+source "$MANAGER_DIR/lib/backup.sh"
+source "$MANAGER_DIR/lib/help.sh"
 
 # ---------------------------------------------------------------------------
 # Check root
@@ -65,6 +67,27 @@ menu_extend() {
 # ---------------------------------------------------------------------------
 menu_trial() {
     create_trial_account
+}
+
+# ---------------------------------------------------------------------------
+# Menu: Backup Data
+# ---------------------------------------------------------------------------
+menu_backup() {
+    backup_data
+}
+
+# ---------------------------------------------------------------------------
+# Menu: Restore Data
+# ---------------------------------------------------------------------------
+menu_restore() {
+    restore_data
+}
+
+# ---------------------------------------------------------------------------
+# Menu: Lihat Daftar Backup
+# ---------------------------------------------------------------------------
+menu_list_backups() {
+    list_backups
 }
 
 # ---------------------------------------------------------------------------
@@ -185,14 +208,19 @@ main_menu() {
         echo -e "  ${YELLOW}[6]${RESET} Buat Akun Trial"
         echo -e "  ${CYAN}[7]${RESET} Custom Domain"
         echo ""
+        echo -e "  ${GREEN}[b]${RESET} Backup Data"
+        echo -e "  ${BLUE}[r]${RESET} Restore Data"
+        echo -e "  ${GRAY}[l]${RESET} Lihat Daftar Backup"
+        echo ""
         echo -e "  ${GRAY}[8]${RESET} Restart Service ZiVPN"
         echo -e "  ${GRAY}[9]${RESET} Status Service ZiVPN"
         echo -e "  ${GRAY}[i]${RESET} Info Server"
         echo ""
+        echo -e "  ${WHITE}[h]${RESET} Bantuan (Help)"
         echo -e "  ${RED}[0]${RESET} Keluar"
         echo ""
         divider
-        echo -en "  Pilih menu [0-9/i]: "
+        echo -en "  Pilih menu [0-9/b/r/l/i/h]: "
         read -r choice
 
         case "$choice" in
@@ -203,9 +231,13 @@ main_menu() {
             5) menu_extend        ;;
             6) menu_trial         ;;
             7) menu_custom_domain ;;
+            b|B) menu_backup      ;;
+            r|R) menu_restore     ;;
+            l|L) menu_list_backups;;
             8) menu_restart       ;;
             9) menu_status        ;;
             i|I) menu_server_info ;;
+            h|H) show_usage; press_enter ;;
             0)
                 echo ""
                 print_info "Keluar dari ZiVPN Manager."
@@ -234,11 +266,18 @@ case "${1:-}" in
     delete)       init_accounts_file; delete_account;;
     trial)        init_accounts_file; create_trial_account ;;
     extend)       init_accounts_file; extend_account ;;
+    set-expired)  init_accounts_file; set_expired_account ;;
+    backup)       init_accounts_file; backup_data   ;;
+    restore)      init_accounts_file; restore_data  ;;
+    backups)      init_accounts_file; list_backups   ;;
     status)       service_status ;;
+    restart)      restart_service ;;
+    info)         init_accounts_file; menu_server_info ;;
     expire-check) init_accounts_file; expire_checker ;;
-    "")           main_menu ;;
+    help)         show_help "${2:-}" ;;
+    version|-v|--version) show_version ;;
     *)
-        echo "Usage: zivpn-manager [list|add|delete|trial|extend|status|expire-check]"
+        show_usage
         exit 1
         ;;
 esac
