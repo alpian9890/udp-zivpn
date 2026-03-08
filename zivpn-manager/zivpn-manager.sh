@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# zivpn-manager.sh — Main entry point: interactive terminal menu
+# zivpn-manager.sh — Main entry point: interactive TUI menu + CLI mode
 # =============================================================================
 
 MANAGER_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -13,6 +13,8 @@ source "$MANAGER_DIR/lib/account.sh"
 source "$MANAGER_DIR/lib/backup.sh"
 source "$MANAGER_DIR/lib/help.sh"
 source "$MANAGER_DIR/lib/update.sh"
+source "$MANAGER_DIR/lib/tui.sh"
+source "$MANAGER_DIR/lib/uninstall.sh"
 
 # ---------------------------------------------------------------------------
 # Check root
@@ -29,72 +31,20 @@ check_deps
 init_accounts_file
 
 # ---------------------------------------------------------------------------
-# Menu: Tambah Akun
+# Action handlers — Each corresponds to a CLI command AND a TUI menu item
 # ---------------------------------------------------------------------------
-menu_add() {
-    add_account
-}
+action_add() { add_account; }
+action_delete() { delete_account; }
+action_list() { list_accounts; }
+action_set_expired() { set_expired_account; }
+action_extend() { extend_account; }
+action_trial() { create_trial_account; }
 
-# ---------------------------------------------------------------------------
-# Menu: Hapus Akun
-# ---------------------------------------------------------------------------
-menu_delete() {
-    delete_account
-}
+action_backup() { backup_data; }
+action_restore() { restore_data; }
+action_backups() { list_backups; }
 
-# ---------------------------------------------------------------------------
-# Menu: Lihat Daftar Akun
-# ---------------------------------------------------------------------------
-menu_list() {
-    list_accounts
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Set Expired
-# ---------------------------------------------------------------------------
-menu_set_expired() {
-    set_expired_account
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Perpanjang Akun
-# ---------------------------------------------------------------------------
-menu_extend() {
-    extend_account
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Akun Trial
-# ---------------------------------------------------------------------------
-menu_trial() {
-    create_trial_account
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Backup Data
-# ---------------------------------------------------------------------------
-menu_backup() {
-    backup_data
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Restore Data
-# ---------------------------------------------------------------------------
-menu_restore() {
-    restore_data
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Lihat Daftar Backup
-# ---------------------------------------------------------------------------
-menu_list_backups() {
-    list_backups
-}
-
-# ---------------------------------------------------------------------------
-# Menu: Restart Service
-# ---------------------------------------------------------------------------
-menu_restart() {
+action_restart() {
     print_header
     echo -e "${BOLD}  Restart ZiVPN Service${RESET}"
     echo ""
@@ -104,19 +54,13 @@ menu_restart() {
     press_enter
 }
 
-# ---------------------------------------------------------------------------
-# Menu: Status Service
-# ---------------------------------------------------------------------------
-menu_status() {
+action_status() {
     print_header
     service_status
     press_enter
 }
 
-# ---------------------------------------------------------------------------
-# Menu: Info Server
-# ---------------------------------------------------------------------------
-menu_server_info() {
+action_info() {
     print_header
     echo -e "${BOLD}  Info Server & Konfigurasi ZiVPN${RESET}"
     echo ""
@@ -151,10 +95,7 @@ menu_server_info() {
     press_enter
 }
 
-# ---------------------------------------------------------------------------
-# Menu: Custom Domain
-# ---------------------------------------------------------------------------
-menu_custom_domain() {
+action_domain() {
     print_header
     echo -e "${BOLD}  Custom Domain${RESET}"
     echo ""
@@ -179,7 +120,6 @@ menu_custom_domain() {
         if [[ -n "$current" ]]; then
             confirm "  Hapus custom domain '${current}'?" || { print_warn "Dibatalkan."; press_enter; return; }
             set_custom_domain ""
-            # Remove the line entirely
             sed -i '/^CUSTOM_DOMAIN=/d' "$MANAGER_CONFIG" 2>/dev/null
             print_success "Custom domain dihapus. Header akan menampilkan IP publik."
         else
@@ -193,93 +133,107 @@ menu_custom_domain() {
     press_enter
 }
 
+action_help() { show_usage; press_enter; }
+action_update() { check_update; }
+action_uninstall() { uninstall_zivpn; }
+
 # ---------------------------------------------------------------------------
-# Main menu loop
+# dispatch_action — Run an action by its ID (used by both TUI and CLI)
 # ---------------------------------------------------------------------------
+dispatch_action() {
+    local action="$1"
+    case "$action" in
+        add)          action_add ;;
+        delete)       action_delete ;;
+        list)         action_list ;;
+        set-expired)  action_set_expired ;;
+        extend)       action_extend ;;
+        trial)        action_trial ;;
+        domain)       action_domain ;;
+        backup)       action_backup ;;
+        restore)      action_restore ;;
+        backups)      action_backups ;;
+        restart)      action_restart ;;
+        status)       action_status ;;
+        info)         action_info ;;
+        help)         action_help ;;
+        update)       action_update ;;
+        uninstall)    action_uninstall ;;
+        __exit__)     return 1 ;;
+        *)            return 1 ;;
+    esac
+    return 0
+}
+
+# ---------------------------------------------------------------------------
+# Main menu — Interactive TUI with arrow-key navigation
+# ---------------------------------------------------------------------------
+
+# Menu item definitions: "Display Label|action_id"
+MENU_ITEMS=(
+    "Tambah Akun|add"
+    "Hapus Akun|delete"
+    "Lihat Daftar Akun|list"
+    "Set Expired Akun|set-expired"
+    "Perpanjang Akun|extend"
+    "Buat Akun Trial|trial"
+    "Custom Domain|domain"
+    "-"
+    "Backup Data|backup"
+    "Restore Data|restore"
+    "Lihat Daftar Backup|backups"
+    "-"
+    "Restart Service|restart"
+    "Status Service|status"
+    "Info Server|info"
+    "-"
+    "Bantuan (Help)|help"
+    "Cek Update|update"
+    "Uninstall ZiVPN|uninstall"
+    "-"
+    "Keluar|__exit__"
+)
+
 main_menu() {
     while true; do
-        print_header
-        echo -e "${BOLD}  MENU UTAMA${RESET}"
-        echo ""
-        echo -e "  ${GREEN}[1]${RESET} Tambah Akun"
-        echo -e "  ${RED}[2]${RESET} Hapus Akun"
-        echo -e "  ${CYAN}[3]${RESET} Lihat Daftar Akun"
-        echo -e "  ${YELLOW}[4]${RESET} Set Expired Akun"
-        echo -e "  ${BLUE}[5]${RESET} Perpanjang Akun"
-        echo -e "  ${YELLOW}[6]${RESET} Buat Akun Trial"
-        echo -e "  ${CYAN}[7]${RESET} Custom Domain"
-        echo ""
-        echo -e "  ${GREEN}[b]${RESET} Backup Data"
-        echo -e "  ${BLUE}[r]${RESET} Restore Data"
-        echo -e "  ${GRAY}[l]${RESET} Lihat Daftar Backup"
-        echo ""
-        echo -e "  ${GRAY}[8]${RESET} Restart Service ZiVPN"
-        echo -e "  ${GRAY}[9]${RESET} Status Service ZiVPN"
-        echo -e "  ${GRAY}[i]${RESET} Info Server"
-        echo ""
-        echo -e "  ${WHITE}[h]${RESET} Bantuan (Help)"
-        echo -e "  ${CYAN}[u]${RESET} Cek Update"
-        echo -e "  ${RED}[0]${RESET} Keluar"
-        echo ""
-        divider
-        echo -en "  Pilih menu [0-9/b/r/l/i/h/u]: "
-        read -r choice
+        local action
+        action=$(tui_menu "MENU UTAMA" MENU_ITEMS)
 
-        case "$choice" in
-            1) menu_add           ;;
-            2) menu_delete        ;;
-            3) menu_list          ;;
-            4) menu_set_expired   ;;
-            5) menu_extend        ;;
-            6) menu_trial         ;;
-            7) menu_custom_domain ;;
-            b|B) menu_backup      ;;
-            r|R) menu_restore     ;;
-            l|L) menu_list_backups;;
-            8) menu_restart       ;;
-            9) menu_status        ;;
-            i|I) menu_server_info ;;
-            h|H) show_usage; press_enter ;;
-            u|U) check_update ;;
-            0)
-                echo ""
-                print_info "Keluar dari ZiVPN Manager."
-                echo ""
-                exit 0
-                ;;
-            *)
-                print_warn "Pilihan tidak valid."
-                sleep 1
-                ;;
-        esac
+        if [[ "$action" == "__exit__" ]]; then
+            echo ""
+            print_info "Keluar dari ZiVPN Manager."
+            echo ""
+            exit 0
+        fi
+
+        dispatch_action "$action" || continue
     done
 }
 
 # ---------------------------------------------------------------------------
-# CLI mode: allow direct commands without interactive menu
-# Usage: zivpn-manager [command] [args]
-#   zivpn-manager list
-#   zivpn-manager add
-#   zivpn-manager delete <username>
-#   zivpn-manager expire-check   (used by cron)
+# CLI mode: direct commands without interactive menu
+# All commands here match action IDs used by the TUI menu.
 # ---------------------------------------------------------------------------
 case "${1:-}" in
-    list)         init_accounts_file; list_accounts ;;
-    add)          init_accounts_file; add_account   ;;
-    delete)       init_accounts_file; delete_account;;
-    trial)        init_accounts_file; create_trial_account ;;
-    extend)       init_accounts_file; extend_account ;;
-    set-expired)  init_accounts_file; set_expired_account ;;
-    backup)       init_accounts_file; backup_data   ;;
-    restore)      init_accounts_file; restore_data  ;;
-    backups)      init_accounts_file; list_backups   ;;
-    status)       service_status ;;
-    restart)      restart_service ;;
-    info)         init_accounts_file; menu_server_info ;;
-    expire-check) init_accounts_file; expire_checker ;;
+    add)          action_add ;;
+    delete)       action_delete ;;
+    list)         action_list ;;
+    set-expired)  action_set_expired ;;
+    extend)       action_extend ;;
+    trial)        action_trial ;;
+    domain)       action_domain ;;
+    backup)       action_backup ;;
+    restore)      action_restore ;;
+    backups)      action_backups ;;
+    restart)      action_restart ;;
+    status)       action_status ;;
+    info)         action_info ;;
+    uninstall)    action_uninstall ;;
+    expire-check) expire_checker ;;
     help)         show_help "${2:-}" ;;
-    update)       check_update ;;
+    update)       action_update ;;
     version|-v|--version) show_version ;;
+    "")           main_menu ;;
     *)
         show_usage
         exit 1
