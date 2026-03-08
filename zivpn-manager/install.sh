@@ -74,6 +74,8 @@ cp "$SCRIPT_DIR/lib/account.sh"     "$INSTALL_DIR/lib/account.sh"
 cp "$SCRIPT_DIR/lib/backup.sh"      "$INSTALL_DIR/lib/backup.sh"
 cp "$SCRIPT_DIR/lib/help.sh"        "$INSTALL_DIR/lib/help.sh"
 cp "$SCRIPT_DIR/lib/update.sh"      "$INSTALL_DIR/lib/update.sh"
+cp "$SCRIPT_DIR/lib/tui.sh"         "$INSTALL_DIR/lib/tui.sh"
+cp "$SCRIPT_DIR/lib/uninstall.sh"   "$INSTALL_DIR/lib/uninstall.sh"
 
 chmod +x "$INSTALL_DIR/zivpn-manager.sh"
 chmod +x "$INSTALL_DIR/expire-checker.sh"
