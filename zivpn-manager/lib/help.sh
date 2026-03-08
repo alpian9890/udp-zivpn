@@ -4,7 +4,7 @@
 # =============================================================================
 
 # Program version
-ZIVPN_MANAGER_VERSION="1.1.0"
+ZIVPN_MANAGER_VERSION="1.2.0"
 
 # ---------------------------------------------------------------------------
 # show_version — Print version
@@ -49,6 +49,7 @@ show_usage() {
     echo -e "  ${GRAY}Lainnya:${RESET}"
     echo "    help           Tampilkan bantuan ini"
     echo "    help <cmd>     Bantuan detail untuk perintah tertentu"
+    echo "    update         Cek dan install update dari GitHub"
     echo "    version        Tampilkan versi"
     echo "    expire-check   Cek & nonaktifkan akun expired (untuk cron)"
     echo ""
@@ -377,13 +378,53 @@ show_help_topic() {
             echo ""
             ;;
 
+        update)
+            echo ""
+            echo -e "${BOLD}zivpn-manager update${RESET}"
+            echo ""
+            echo -e "${BOLD}Deskripsi:${RESET}"
+            echo "  Mengecek apakah ada versi terbaru ZiVPN Manager di GitHub."
+            echo "  Jika ada update, Anda bisa memilih untuk menginstall versi"
+            echo "  terbaru atau tetap menggunakan versi saat ini."
+            echo ""
+            echo -e "${BOLD}Penggunaan:${RESET}"
+            echo "  zivpn-manager update"
+            echo ""
+            echo -e "${BOLD}Contoh:${RESET}"
+            echo "  \$ zivpn-manager update"
+            echo "  Versi terpasang : v1.2.0"
+            echo "  Versi terbaru   : v1.3.0"
+            echo ""
+            echo "  ⬆  Update tersedia: v1.2.0 → v1.3.0"
+            echo ""
+            echo "  [1] Update ke v1.3.0"
+            echo "  [2] Gunakan versi sekarang (skip)"
+            echo "  Pilih [1/2]: 1"
+            echo ""
+            echo -e "${BOLD}Cara kerja:${RESET}"
+            echo "  1. Membandingkan versi lokal dengan versi di GitHub"
+            echo "  2. Jika ada update, menampilkan pilihan update atau skip"
+            echo "  3. Jika memilih update:"
+            echo "     - Mengunduh semua file terbaru dari GitHub"
+            echo "     - Membuat backup versi lama secara otomatis"
+            echo "     - Mengganti file dengan versi baru"
+            echo "  4. Jalankan 'zivpn-manager' kembali untuk menggunakan versi baru"
+            echo ""
+            echo -e "${BOLD}Catatan:${RESET}"
+            echo "  - Membutuhkan koneksi internet ke github.com"
+            echo "  - Data akun (accounts.json) tidak terpengaruh oleh update"
+            echo "  - Backup otomatis dibuat sebelum update di /etc/zivpn/backups/"
+            echo ""
+            ;;
+
         *)
             echo ""
             echo -e "${RED}[✗]${RESET} Perintah '${topic}' tidak dikenali."
             echo ""
             echo "Perintah yang tersedia:"
             echo "  list, add, delete, trial, extend, set-expired,"
-            echo "  backup, restore, backups, status, restart, info, expire-check"
+            echo "  backup, restore, backups, status, restart, info,"
+            echo "  update, expire-check"
             echo ""
             echo "Contoh: zivpn-manager help backup"
             echo ""
