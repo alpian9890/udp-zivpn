@@ -71,6 +71,8 @@ cp "$SCRIPT_DIR/expire-checker.sh"  "$INSTALL_DIR/expire-checker.sh"
 cp "$SCRIPT_DIR/lib/utils.sh"       "$INSTALL_DIR/lib/utils.sh"
 cp "$SCRIPT_DIR/lib/config.sh"      "$INSTALL_DIR/lib/config.sh"
 cp "$SCRIPT_DIR/lib/account.sh"     "$INSTALL_DIR/lib/account.sh"
+cp "$SCRIPT_DIR/lib/backup.sh"      "$INSTALL_DIR/lib/backup.sh"
+cp "$SCRIPT_DIR/lib/help.sh"        "$INSTALL_DIR/lib/help.sh"
 
 chmod +x "$INSTALL_DIR/zivpn-manager.sh"
 chmod +x "$INSTALL_DIR/expire-checker.sh"
