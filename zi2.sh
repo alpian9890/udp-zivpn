@@ -70,6 +70,7 @@ wget -q "https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/zivpn-manag
 wget -q "https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/zivpn-manager/lib/account.sh"    -O "$MANAGER_TMP/lib/account.sh"
 wget -q "https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/zivpn-manager/lib/backup.sh"     -O "$MANAGER_TMP/lib/backup.sh"
 wget -q "https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/zivpn-manager/lib/help.sh"       -O "$MANAGER_TMP/lib/help.sh"
+wget -q "https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/zivpn-manager/lib/update.sh"     -O "$MANAGER_TMP/lib/update.sh"
 chmod +x "$MANAGER_TMP/install.sh"
 bash "$MANAGER_TMP/install.sh"
 rm -rf "$MANAGER_TMP"
