@@ -36,42 +36,54 @@ ZiVPN Manager adalah tool berbasis terminal untuk mengelola akun VPN, backup dat
 
 ### Menjalankan Manager
 
-```bash
-# Mode interaktif (menu)
-zivpn-manager
+ZiVPN Manager mendukung dua mode penggunaan:
 
-# Mode command line langsung
+**Mode Interaktif (TUI)** — Menu dengan navigasi arrow keys:
+```bash
+zivpn-manager
+```
+Gunakan tombol ↑↓ untuk memilih menu, Enter untuk konfirmasi, ESC untuk keluar. Menu dikelompokkan berdasarkan kategori (Akun, Backup, Service, dll).
+
+**Mode Command Line** — Akses langsung ke perintah:
+```bash
 zivpn-manager <perintah>
+
+# Contoh
+zivpn-manager list
+zivpn-manager add
+zivpn-manager backup
 
 # Lihat bantuan
 zivpn-manager help
-
-# Bantuan untuk perintah tertentu
 zivpn-manager help <perintah>
 ```
+
+Semua fitur yang ada di menu interaktif juga tersedia sebagai command line.
 
 ---
 
 ### Daftar Perintah
 
-| Perintah | Menu | Deskripsi |
-|----------|------|-----------|
-| `list` | `[3]` | Lihat daftar semua akun |
-| `add` | `[1]` | Tambah akun baru |
-| `delete` | `[2]` | Hapus akun |
-| `trial` | `[6]` | Buat akun trial (durasi pendek) |
-| `extend` | `[5]` | Perpanjang masa aktif akun |
-| `set-expired` | `[4]` | Set tanggal expired akun |
-| `backup` | `[b]` | Buat backup data |
-| `restore` | `[r]` | Restore data dari backup |
-| `backups` | `[l]` | Lihat daftar file backup |
-| `status` | `[9]` | Lihat status service |
-| `restart` | `[8]` | Restart service |
-| `info` | `[i]` | Info server & konfigurasi |
-| `help` | `[h]` | Tampilkan bantuan |
-| `update` | `[u]` | Cek dan install update dari GitHub |
-| `version` | — | Tampilkan versi |
-| `expire-check` | — | Cek akun expired (cron) |
+| Perintah | Deskripsi |
+|----------|-----------|
+| `add` | Tambah akun baru |
+| `delete` | Hapus akun |
+| `list` | Lihat daftar semua akun |
+| `set-expired` | Set tanggal expired akun |
+| `extend` | Perpanjang masa aktif akun |
+| `trial` | Buat akun trial (durasi pendek) |
+| `domain` | Set atau hapus custom domain |
+| `backup` | Buat backup data |
+| `restore` | Restore data dari backup |
+| `backups` | Lihat daftar file backup |
+| `restart` | Restart service |
+| `status` | Lihat status service |
+| `info` | Info server & konfigurasi |
+| `help` | Tampilkan bantuan |
+| `update` | Cek dan install update dari GitHub |
+| `uninstall` | Hapus ZiVPN dan semua data dari server |
+| `version` | Tampilkan versi |
+| `expire-check` | Cek akun expired (cron) |
 
 ---
 
@@ -291,7 +303,9 @@ Log: `/var/log/zivpn-expire.log`
         ├── account.sh       Manajemen akun
         ├── backup.sh        Backup & restore
         ├── help.sh          Sistem bantuan
-        └── update.sh        Cek & install update
+        ├── update.sh        Cek & install update
+        ├── tui.sh           TUI engine (arrow-key menu)
+        └── uninstall.sh     Uninstall ZiVPN
 ```
 
 ---
@@ -311,6 +325,23 @@ Cara kerja:
 4. Backup versi lama dibuat otomatis sebelum update
 
 > Data akun (`accounts.json`) dan konfigurasi tidak terpengaruh oleh update.
+
+---
+
+### Uninstall
+
+Menghapus ZiVPN dan semua komponen dari server. Sebelum menghapus, Anda akan ditanya apakah ingin membuat backup terlebih dahulu.
+
+```bash
+zivpn-manager uninstall
+```
+
+Pilihan yang tersedia:
+1. **Backup dulu, lalu uninstall** — Data di-backup dan disalin ke `/root/` agar tidak ikut terhapus
+2. **Langsung uninstall** — Tanpa backup (hati-hati!)
+3. **Batal** — Kembali tanpa melakukan apa-apa
+
+Yang dihapus: service systemd, binary, konfigurasi, database akun, sertifikat, manager, cron job, dan aturan firewall.
 
 ---
 
