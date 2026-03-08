@@ -12,6 +12,7 @@ source "$MANAGER_DIR/lib/config.sh"
 source "$MANAGER_DIR/lib/account.sh"
 source "$MANAGER_DIR/lib/backup.sh"
 source "$MANAGER_DIR/lib/help.sh"
+source "$MANAGER_DIR/lib/update.sh"
 
 # ---------------------------------------------------------------------------
 # Check root
@@ -217,10 +218,11 @@ main_menu() {
         echo -e "  ${GRAY}[i]${RESET} Info Server"
         echo ""
         echo -e "  ${WHITE}[h]${RESET} Bantuan (Help)"
+        echo -e "  ${CYAN}[u]${RESET} Cek Update"
         echo -e "  ${RED}[0]${RESET} Keluar"
         echo ""
         divider
-        echo -en "  Pilih menu [0-9/b/r/l/i/h]: "
+        echo -en "  Pilih menu [0-9/b/r/l/i/h/u]: "
         read -r choice
 
         case "$choice" in
@@ -238,6 +240,7 @@ main_menu() {
             9) menu_status        ;;
             i|I) menu_server_info ;;
             h|H) show_usage; press_enter ;;
+            u|U) check_update ;;
             0)
                 echo ""
                 print_info "Keluar dari ZiVPN Manager."
@@ -275,6 +278,7 @@ case "${1:-}" in
     info)         init_accounts_file; menu_server_info ;;
     expire-check) init_accounts_file; expire_checker ;;
     help)         show_help "${2:-}" ;;
+    update)       check_update ;;
     version|-v|--version) show_version ;;
     *)
         show_usage
