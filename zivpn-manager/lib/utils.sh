@@ -95,7 +95,7 @@ print_header() {
 
     echo -e "${BLUE}${BOLD}"
     echo "  ╔══════════════════════════════════════════════════════════╗"
-    echo "  ║              ZiVPN Account Manager v1.0                  ║"
+    printf '  ║         ZiVPN Account Manager %-26s ║\n' "v${ZIVPN_MANAGER_VERSION:-1.0}"
     echo "  ╚══════════════════════════════════════════════════════════╝"
     echo -e "${RESET}"
     echo -e "  ${GRAY}${host_label} :${RESET} ${WHITE}${host}${RESET}"

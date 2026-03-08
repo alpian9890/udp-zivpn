@@ -42,7 +42,12 @@ uninstall_zivpn() {
     fi
 
     if command -v tui_confirm &>/dev/null 2>&1 && [[ -t 0 ]]; then
-        # TUI mode
+        tui_confirm "Lanjutkan proses uninstall?" || {
+            print_info "Uninstall dibatalkan."
+            press_enter
+            return 0
+        }
+        echo ""
         echo -e "  ${BOLD}Pilih tindakan:${RESET}"
         echo ""
         echo -e "  ${GREEN}[1]${RESET} Backup dulu, lalu uninstall"
@@ -98,6 +103,9 @@ uninstall_zivpn() {
 
     echo ""
     _execute_uninstall
+
+    # Exit the entire script — files are deleted, don't return to TUI loop
+    exit 0
 }
 
 # ---------------------------------------------------------------------------
