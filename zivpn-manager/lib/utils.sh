@@ -12,18 +12,85 @@ CYAN='\033[0;36m'
 WHITE='\033[1;37m'
 GRAY='\033[0;90m'
 BOLD='\033[1m'
+DIM='\033[2m'
 RESET='\033[0m'
 
+# Extended palette (256-color)
+LIGHT_CYAN='\033[0;96m'
+LIGHT_GREEN='\033[0;92m'
+LIGHT_BLUE='\033[0;94m'
+MAGENTA='\033[0;35m'
+FG_ACCENT='\033[38;5;75m'
+FG_ACCENT2='\033[38;5;39m'
+FG_HEADER='\033[38;5;117m'
+FG_DIM='\033[38;5;243m'
+FG_SUBTLE='\033[38;5;240m'
+FG_TEXT='\033[38;5;252m'
+BG_HIGHLIGHT='\033[48;5;24m'
+BG_SUCCESS='\033[48;5;22m'
+BG_ERROR='\033[48;5;52m'
+
+# Box drawing characters
+BOX_TL='╭' BOX_TR='╮' BOX_BL='╰' BOX_BR='╯'
+BOX_H='─' BOX_V='│'
+
 # --- Print helpers -----------------------------------------------------------
-print_success() { echo -e "${GREEN}[✓]${RESET} $1"; }
-print_error()   { echo -e "${RED}[✗]${RESET} $1"; }
-print_info()    { echo -e "${CYAN}[i]${RESET} $1"; }
-print_warn()    { echo -e "${YELLOW}[!]${RESET} $1"; }
+print_success() { echo -e "  ${GREEN}  ✓${RESET}  $1"; }
+print_error()   { echo -e "  ${RED}  ✗${RESET}  $1"; }
+print_info()    { echo -e "  ${CYAN}  ●${RESET}  $1"; }
+print_warn()    { echo -e "  ${YELLOW}  ▲${RESET}  $1"; }
 print_bold()    { echo -e "${BOLD}$1${RESET}"; }
 
 # --- Divider -----------------------------------------------------------------
 divider() {
-    echo -e "${GRAY}$(printf '─%.0s' {1..60})${RESET}"
+    local style="${1:-normal}"
+    case "$style" in
+        subtle) echo -e "  ${FG_SUBTLE}$(printf '┄%.0s' {1..56})${RESET}" ;;
+        double) echo -e "  ${FG_DIM}$(printf '═%.0s' {1..56})${RESET}" ;;
+        *)      echo -e "  ${FG_DIM}$(printf '─%.0s' {1..56})${RESET}" ;;
+    esac
+}
+
+# --- Section title -----------------------------------------------------------
+section_title() {
+    local title="$1"
+    local title_len=${#title}
+    local line_len=$(( 54 - title_len ))
+    echo -e "  ${FG_ACCENT}${BOX_H}${BOX_H} ${BOLD}${FG_ACCENT}${title}${RESET} ${FG_ACCENT}$(printf "${BOX_H}%.0s" $(seq 1 $line_len))${RESET}"
+}
+
+# --- Rounded box helpers -----------------------------------------------------
+box_top() {
+    echo -e "  ${FG_ACCENT}${BOX_TL}$(printf "${BOX_H}%.0s" {1..56})${BOX_TR}${RESET}"
+}
+
+box_bottom() {
+    echo -e "  ${FG_ACCENT}${BOX_BL}$(printf "${BOX_H}%.0s" {1..56})${BOX_BR}${RESET}"
+}
+
+box_line() {
+    local text="$1"
+    # Strip ANSI codes to measure visible width for proper right-border alignment
+    local plain
+    plain=$(printf '%b' "$text" | sed $'s/\x1b\\[[0-9;]*m//g')
+    local vis=${#plain}
+    local pad=$(( 52 - vis ))
+    (( pad < 0 )) && pad=0
+    printf '  \033[38;5;75m│\033[0m  %b%*s  \033[38;5;75m│\033[0m\n' "$text" "$pad" ""
+}
+
+box_empty() {
+    printf '  %b%b%56s%b%b\n' "${FG_ACCENT}" "${BOX_V}" "" "${BOX_V}" "${RESET}"
+}
+
+box_divider() {
+    echo -e "  ${FG_ACCENT}${BOX_V}${FG_SUBTLE}$(printf '─%.0s' {1..56})${FG_ACCENT}${BOX_V}${RESET}"
+}
+
+# --- Status badge ------------------------------------------------------------
+badge() {
+    local label="$1" color="$2"
+    echo -e "${color}●${RESET} ${color}${label}${RESET}"
 }
 
 # --- Server info helpers -----------------------------------------------------
@@ -93,13 +160,19 @@ print_header() {
     local host_label="IP Server"
     [[ -n "$domain" ]] && host_label="Domain   "
 
-    echo -e "${BLUE}${BOLD}"
-    echo "  ╔══════════════════════════════════════════════════════════╗"
-    printf '  ║         ZiVPN Account Manager %-26s ║\n' "v${ZIVPN_MANAGER_VERSION:-1.0}"
-    echo "  ╚══════════════════════════════════════════════════════════╝"
-    echo -e "${RESET}"
-    echo -e "  ${GRAY}${host_label} :${RESET} ${WHITE}${host}${RESET}"
-    echo -e "  ${GRAY}Total Akun :${RESET} ${WHITE}${total}${RESET}  |  ${GREEN}Aktif: ${active}${RESET}  |  ${RED}Expired: ${expired}${RESET}"
+    local ver="v${ZIVPN_MANAGER_VERSION:-1.0}"
+
+    echo ""
+    box_top
+    box_empty
+    printf '  %b%b  %b%b         ⚡  ZiVPN Account Manager  %-17s%b  %b%b%b\n' \
+        "${FG_ACCENT}" "${BOX_V}" "${BOLD}" "${FG_HEADER}" "$ver" "${RESET}" "${FG_ACCENT}" "${BOX_V}" "${RESET}"
+    box_empty
+    box_bottom
+    echo ""
+    echo -e "  ${FG_DIM}  ${host_label} :${RESET}  ${WHITE}${host}${RESET}"
+    echo -e "  ${FG_DIM}  Total Akun :${RESET}  ${WHITE}${total}${RESET}  ${FG_SUBTLE}│${RESET}  $(badge "Aktif: ${active}" "$GREEN")  ${FG_SUBTLE}│${RESET}  $(badge "Expired: ${expired}" "$RED")"
+    echo ""
     divider
 }
 
@@ -189,7 +262,7 @@ validate_date() {
 # --- Confirm prompt ----------------------------------------------------------
 confirm() {
     local msg="${1:-Yakin?}"
-    echo -en "${YELLOW}${msg} (y/n):${RESET} "
+    echo -en "  ${YELLOW}▸ ${msg} ${FG_DIM}(y/n):${RESET} "
     read -r answer
     [[ "$answer" =~ ^[Yy]$ ]]
 }
@@ -197,7 +270,7 @@ confirm() {
 # --- Press any key -----------------------------------------------------------
 press_enter() {
     echo ""
-    echo -en "${GRAY}Tekan [Enter] untuk kembali ke menu...${RESET}"
+    echo -en "  ${FG_SUBTLE}─── Tekan ${RESET}${FG_DIM}[Enter]${RESET}${FG_SUBTLE} untuk kembali ke menu ───${RESET}"
     read -r
 }
 
