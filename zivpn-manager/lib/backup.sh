@@ -17,17 +17,19 @@ BACKUP_FILES=(
 # ---------------------------------------------------------------------------
 backup_data() {
     print_header
-    echo -e "${BOLD}  Backup Data ZiVPN${RESET}"
+    echo ""
+    section_title "Backup Data ZiVPN"
     echo ""
 
-    echo -e "  ${GRAY}File yang akan di-backup:${RESET}"
+    echo -e "    ${FG_DIM}File yang akan di-backup:${RESET}"
+    echo ""
     local files_to_backup=()
     for f in "${BACKUP_FILES[@]}"; do
         if [[ -f "$f" ]]; then
-            echo -e "  ${GREEN}✓${RESET} $f"
+            echo -e "    ${GREEN}✓${RESET}  $f"
             files_to_backup+=("$f")
         else
-            echo -e "  ${GRAY}✗ $f (tidak ada, dilewati)${RESET}"
+            echo -e "    ${FG_SUBTLE}✗  $f (tidak ada, dilewati)${RESET}"
         fi
     done
     echo ""
@@ -43,8 +45,8 @@ backup_data() {
         local total active
         total=$(jq '.accounts | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
         active=$(jq '[.accounts[] | select(.status == "active")] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
-        echo -e "  ${GRAY}Total akun  :${RESET} ${WHITE}${total}${RESET}"
-        echo -e "  ${GRAY}Akun aktif  :${RESET} ${GREEN}${active}${RESET}"
+        echo -e "    ${FG_DIM}Total akun  :${RESET}  ${WHITE}${total}${RESET}"
+        echo -e "    ${FG_DIM}Akun aktif  :${RESET}  ${GREEN}${active}${RESET}"
         echo ""
     fi
 
@@ -65,15 +67,16 @@ backup_data() {
         size=$(du -h "$backup_file" | cut -f1)
         print_success "Backup berhasil dibuat!"
         echo ""
-        echo -e "  ${BOLD}Detail Backup:${RESET}"
-        echo -e "  ┌────────────────────────────────────────────────────┐"
-        echo -e "  │  File : ${CYAN}${backup_file}${RESET}"
-        echo -e "  │  Size : ${WHITE}${size}${RESET}"
-        echo -e "  │  Isi  : ${WHITE}${#files_to_backup[@]} file${RESET}"
-        echo -e "  └────────────────────────────────────────────────────┘"
+        echo -e "    ${BOLD}Detail Backup:${RESET}"
         echo ""
-        echo -e "  ${GRAY}Salin file ini ke server baru untuk restore:${RESET}"
-        echo -e "  ${CYAN}scp ${backup_file} root@<IP_SERVER_BARU>:/etc/zivpn/backups/${RESET}"
+        box_top
+        box_line "${FG_DIM}File :${RESET}  ${CYAN}${backup_file}${RESET}"
+        box_line "${FG_DIM}Size :${RESET}  ${WHITE}${size}${RESET}"
+        box_line "${FG_DIM}Isi  :${RESET}  ${WHITE}${#files_to_backup[@]} file${RESET}"
+        box_bottom
+        echo ""
+        echo -e "    ${FG_DIM}Salin file ini ke server baru untuk restore:${RESET}"
+        echo -e "    ${CYAN}scp ${backup_file} root@<IP_SERVER_BARU>:/etc/zivpn/backups/${RESET}"
     else
         print_error "Gagal membuat backup."
     fi
@@ -86,7 +89,8 @@ backup_data() {
 # ---------------------------------------------------------------------------
 restore_data() {
     print_header
-    echo -e "${BOLD}  Restore Data ZiVPN${RESET}"
+    echo ""
+    section_title "Restore Data ZiVPN"
     echo ""
 
     mkdir -p "$BACKUP_DIR"
@@ -98,7 +102,7 @@ restore_data() {
     done < <(find "$BACKUP_DIR" -maxdepth 1 -name "zivpn-backup_*.tar.gz" -type f 2>/dev/null | sort -r)
 
     if [[ ${#backups[@]} -gt 0 ]]; then
-        echo -e "  ${BOLD}Backup tersedia:${RESET}"
+        echo -e "    ${BOLD}Backup tersedia:${RESET}"
         echo ""
         local i=0
         for b in "${backups[@]}"; do
@@ -106,18 +110,17 @@ restore_data() {
             local bname bsize bdate
             bname=$(basename "$b")
             bsize=$(du -h "$b" | cut -f1)
-            # Extract date from filename
             bdate=$(echo "$bname" | sed -E 's/zivpn-backup_([0-9]{4})([0-9]{2})([0-9]{2})_([0-9]{2})([0-9]{2})([0-9]{2})\.tar\.gz/\1-\2-\3 \4:\5:\6/')
-            printf "  ${GREEN}[%d]${RESET} %-24s ${GRAY}(%s, %s)${RESET}\n" "$i" "$bname" "$bsize" "$bdate"
+            printf "    ${GREEN}[%d]${RESET} %-24s ${FG_DIM}(%s, %s)${RESET}\n" "$i" "$bname" "$bsize" "$bdate"
         done
         echo ""
-        echo -e "  ${GRAY}[p]${RESET} Masukkan path file backup manual"
-        echo -e "  ${RED}[0]${RESET} Batal"
+        echo -e "    ${FG_SUBTLE}[p]${RESET} Masukkan path file backup manual"
+        echo -e "    ${RED}[0]${RESET} Batal"
         echo ""
-        divider
+        divider "subtle"
 
         local choice
-        echo -en "  Pilih backup [0-${#backups[@]}/p]: "
+        echo -en "    ${FG_DIM}Pilih backup${RESET} [0-${#backups[@]}/p]: "
         read -r choice
 
         if [[ "$choice" == "0" ]]; then
@@ -125,7 +128,7 @@ restore_data() {
             press_enter
             return
         elif [[ "$choice" == "p" || "$choice" == "P" ]]; then
-            echo -en "  Path file backup (.tar.gz): "
+            echo -en "    ${FG_DIM}Path file backup (.tar.gz):${RESET} "
             read -r backup_path
         elif [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#backups[@]} )); then
             backup_path="${backups[$((choice - 1))]}"
@@ -135,9 +138,9 @@ restore_data() {
             return
         fi
     else
-        echo -e "  ${GRAY}Tidak ada backup di ${BACKUP_DIR}${RESET}"
+        echo -e "    ${FG_SUBTLE}Tidak ada backup di ${BACKUP_DIR}${RESET}"
         echo ""
-        echo -en "  Path file backup (.tar.gz): "
+        echo -en "    ${FG_DIM}Path file backup (.tar.gz):${RESET} "
         read -r backup_path
     fi
 
@@ -163,9 +166,9 @@ restore_data() {
     fi
 
     echo ""
-    echo -e "  ${BOLD}Isi backup:${RESET}"
+    echo -e "    ${BOLD}Isi backup:${RESET}"
     tar -tzf "$backup_path" 2>/dev/null | while IFS= read -r entry; do
-        echo -e "  ${GRAY}  /${entry}${RESET}"
+        echo -e "      ${FG_SUBTLE}/${entry}${RESET}"
     done
     echo ""
 
@@ -178,13 +181,13 @@ restore_data() {
             local bk_total bk_active
             bk_total=$(jq '.accounts | length' "$preview_file" 2>/dev/null || echo "?")
             bk_active=$(jq '[.accounts[] | select(.status == "active")] | length' "$preview_file" 2>/dev/null || echo "?")
-            echo -e "  ${GRAY}Akun dalam backup:${RESET} Total ${WHITE}${bk_total}${RESET} | Aktif ${GREEN}${bk_active}${RESET}"
+            echo -e "    ${FG_DIM}Akun dalam backup:${RESET} Total ${WHITE}${bk_total}${RESET} ${FG_SUBTLE}│${RESET} $(badge "Aktif ${bk_active}" "$GREEN")"
             echo ""
         fi
     fi
     rm -rf "$tmp_preview"
 
-    echo -e "  ${RED}${BOLD}⚠  PERINGATAN: Restore akan menimpa data saat ini!${RESET}"
+    echo -e "    ${RED}${BOLD}⚠  PERINGATAN: Restore akan menimpa data saat ini!${RESET}"
     echo ""
     confirm "  Lanjutkan restore dari backup ini?" || { print_warn "Dibatalkan."; press_enter; return; }
 
@@ -222,8 +225,8 @@ restore_data() {
             local r_total r_active
             r_total=$(jq '.accounts | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
             r_active=$(jq '[.accounts[] | select(.status == "active")] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
-            echo -e "  ${GRAY}Total akun ter-restore :${RESET} ${WHITE}${r_total}${RESET}"
-            echo -e "  ${GRAY}Akun aktif             :${RESET} ${GREEN}${r_active}${RESET}"
+            echo -e "    ${FG_DIM}Total akun ter-restore :${RESET}  ${WHITE}${r_total}${RESET}"
+            echo -e "    ${FG_DIM}Akun aktif             :${RESET}  ${GREEN}${r_active}${RESET}"
         fi
     else
         print_error "Gagal melakukan restore."
@@ -240,7 +243,8 @@ restore_data() {
 # ---------------------------------------------------------------------------
 list_backups() {
     print_header
-    echo -e "${BOLD}  Daftar Backup ZiVPN${RESET}"
+    echo ""
+    section_title "Daftar Backup ZiVPN"
     echo ""
 
     mkdir -p "$BACKUP_DIR"
@@ -252,13 +256,15 @@ list_backups() {
 
     if [[ ${#backups[@]} -eq 0 ]]; then
         print_info "Belum ada file backup."
-        echo -e "  ${GRAY}Buat backup dari menu utama.${RESET}"
+        echo -e "    ${FG_SUBTLE}Buat backup dari menu utama.${RESET}"
         press_enter
         return
     fi
 
-    printf "  ${BOLD}%-4s %-44s %-8s %-20s${RESET}\n" "No" "Nama File" "Size" "Tanggal"
-    divider
+    printf "  ${FG_DIM}┌──────┬──────────────────────────────────────────────┬──────────┬──────────────────────┐${RESET}\n"
+    printf "  ${FG_DIM}│${RESET} ${BOLD}%-4s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-44s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-8s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-20s${RESET} ${FG_DIM}│${RESET}\n" \
+        "No" "Nama File" "Size" "Tanggal"
+    printf "  ${FG_DIM}├──────┼──────────────────────────────────────────────┼──────────┼──────────────────────┤${RESET}\n"
 
     local i=0
     for b in "${backups[@]}"; do
@@ -267,11 +273,12 @@ list_backups() {
         bname=$(basename "$b")
         bsize=$(du -h "$b" | cut -f1)
         bdate=$(stat -c '%y' "$b" 2>/dev/null | cut -d'.' -f1)
-        printf "  ${GRAY}%-4s${RESET} %-44s ${CYAN}%-8s${RESET} ${GRAY}%-20s${RESET}\n" "$i" "$bname" "$bsize" "$bdate"
+        printf "  ${FG_DIM}│${RESET} ${FG_DIM}%-4s${RESET} ${FG_DIM}│${RESET} %-44s ${FG_DIM}│${RESET} ${CYAN}%-8s${RESET} ${FG_DIM}│${RESET} ${FG_SUBTLE}%-20s${RESET} ${FG_DIM}│${RESET}\n" "$i" "$bname" "$bsize" "$bdate"
     done
 
-    divider
-    echo -e "  ${GRAY}Lokasi backup: ${BACKUP_DIR}${RESET}"
+    printf "  ${FG_DIM}└──────┴──────────────────────────────────────────────┴──────────┴──────────────────────┘${RESET}\n"
+    echo ""
+    echo -e "    ${FG_SUBTLE}Lokasi backup: ${BACKUP_DIR}${RESET}"
     echo ""
     press_enter
 }
