@@ -33,7 +33,8 @@ password_exists() {
 # ---------------------------------------------------------------------------
 list_accounts() {
     print_header
-    echo -e "${BOLD}  Daftar Akun ZiVPN${RESET}"
+    echo ""
+    section_title "Daftar Akun ZiVPN"
     echo ""
 
     local total
@@ -46,10 +47,10 @@ list_accounts() {
     fi
 
     # Table header
-    printf "  ${BOLD}%-4s %-16s %-14s %-10s %-22s %-8s${RESET}\n" \
+    printf "  ${FG_DIM}┌──────┬──────────────────┬────────────────┬────────────┬────────────────────────┬──────────┐${RESET}\n"
+    printf "  ${FG_DIM}│${RESET} ${BOLD}%-4s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-16s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-14s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-10s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-22s${RESET} ${FG_DIM}│${RESET} ${BOLD}%-8s${RESET} ${FG_DIM}│${RESET}\n" \
         "No" "Username" "Password" "Status" "Expired At" "Sisa"
-
-    divider
+    printf "  ${FG_DIM}├──────┼──────────────────┼────────────────┼────────────┼────────────────────────┼──────────┤${RESET}\n"
 
     local i=0
     while IFS= read -r acc; do
@@ -94,19 +95,20 @@ list_accounts() {
             sisa_colored="${GREEN}${sisa} hari${RESET}"
         fi
 
-        printf "  ${GRAY}%-4s${RESET} %-16s ${CYAN}%-14s${RESET} ${color}%-10s${RESET} %-22s %b\n" \
+        printf "  ${FG_DIM}│${RESET} ${FG_DIM}%-4s${RESET} ${FG_DIM}│${RESET} %-16s ${FG_DIM}│${RESET} ${CYAN}%-14s${RESET} ${FG_DIM}│${RESET} ${color}%-10s${RESET} ${FG_DIM}│${RESET} %-22s ${FG_DIM}│${RESET} %b ${FG_DIM}│${RESET}\n" \
             "$i" "$username" "$password" "$status_label" "$expired_fmt" "$sisa_colored"
 
     done < <(jq -c '.accounts[]' "$ACCOUNTS_FILE")
 
-    divider
+    printf "  ${FG_DIM}└──────┴──────────────────┴────────────────┴────────────┴────────────────────────┴──────────┘${RESET}\n"
 
     local active trial_count expired_count
     active=$(jq '[.accounts[] | select(.status == "active" and .trial == false)] | length' "$ACCOUNTS_FILE")
     trial_count=$(jq '[.accounts[] | select(.status == "active" and .trial == true)] | length' "$ACCOUNTS_FILE")
     expired_count=$(jq '[.accounts[] | select(.status == "expired")] | length' "$ACCOUNTS_FILE")
 
-    echo -e "  Total: ${WHITE}${total}${RESET}  |  Aktif: ${GREEN}${active}${RESET}  |  Trial: ${YELLOW}${trial_count}${RESET}  |  Expired: ${RED}${expired_count}${RESET}"
+    echo ""
+    echo -e "    Total: ${WHITE}${total}${RESET}  ${FG_SUBTLE}│${RESET}  $(badge "Aktif: ${active}" "$GREEN")  ${FG_SUBTLE}│${RESET}  $(badge "Trial: ${trial_count}" "$YELLOW")  ${FG_SUBTLE}│${RESET}  $(badge "Expired: ${expired_count}" "$RED")"
     echo ""
     press_enter
 }
@@ -116,13 +118,14 @@ list_accounts() {
 # ---------------------------------------------------------------------------
 add_account() {
     print_header
-    echo -e "${BOLD}  Tambah Akun Baru${RESET}"
+    echo ""
+    section_title "Tambah Akun Baru"
     echo ""
 
     # Username
     local username
     while true; do
-        echo -en "  Username (3-32 karakter): "
+        echo -en "    ${FG_DIM}Username${RESET} ${FG_SUBTLE}(3-32 karakter):${RESET} "
         read -r username
         username=$(echo "$username" | tr -d ' ')
         validate_username "$username" || continue
@@ -137,7 +140,7 @@ add_account() {
     local password
     local auto_pw
     auto_pw=$(generate_password 10)
-    echo -en "  Password [Enter = auto: ${CYAN}${auto_pw}${RESET}]: "
+    echo -en "    ${FG_DIM}Password${RESET} ${FG_SUBTLE}[Enter = auto: ${CYAN}${auto_pw}${RESET}${FG_SUBTLE}]:${RESET} "
     read -r password
     if [[ -z "$password" ]]; then
         password="$auto_pw"
@@ -149,7 +152,7 @@ add_account() {
     # Duration
     local days
     while true; do
-        echo -en "  Durasi (hari) [Enter = 30]: "
+        echo -en "    ${FG_DIM}Durasi${RESET} ${FG_SUBTLE}(hari) [Enter = 30]:${RESET} "
         read -r days
         if [[ -z "$days" ]]; then
             days=30
@@ -164,10 +167,12 @@ add_account() {
     created_at=$(now_iso)
 
     echo ""
-    echo -e "  ${BOLD}Konfirmasi:${RESET}"
-    echo -e "  Username  : ${WHITE}${username}${RESET}"
-    echo -e "  Password  : ${CYAN}${password}${RESET}"
-    echo -e "  Expired   : ${YELLOW}$(format_date "$expired_at")${RESET}"
+    divider "subtle"
+    echo -e "    ${BOLD}Konfirmasi:${RESET}"
+    echo -e "    ${FG_DIM}Username  :${RESET}  ${WHITE}${username}${RESET}"
+    echo -e "    ${FG_DIM}Password  :${RESET}  ${CYAN}${password}${RESET}"
+    echo -e "    ${FG_DIM}Expired   :${RESET}  ${YELLOW}$(format_date "$expired_at")${RESET}"
+    divider "subtle"
     echo ""
 
     confirm "  Simpan akun ini?" || { print_warn "Dibatalkan."; press_enter; return; }
@@ -191,15 +196,18 @@ add_account() {
     echo ""
     print_success "Akun '${username}' berhasil ditambahkan!"
     echo ""
-    echo -e "  ${BOLD}Info akun untuk diberikan ke pengguna:${RESET}"
-    echo -e "  ┌────────────────────────────────────────────┐"
-    echo -e "  │  Host     : ${CYAN}$(get_server_host)${RESET}"
-    echo -e "  │  Port     : ${WHITE}6000-19999 (UDP)${RESET}"
-    echo -e "  │  Username : ${WHITE}${username}${RESET}"
-    echo -e "  │  Password : ${CYAN}${password}${RESET}"
-    echo -e "  │  Dibuat   : ${GRAY}$(format_date "$created_at")${RESET}"
-    echo -e "  │  Expired  : ${YELLOW}$(format_date "$expired_at")${RESET}"
-    echo -e "  └────────────────────────────────────────────┘"
+    echo -e "    ${BOLD}Info akun untuk diberikan ke pengguna:${RESET}"
+    echo ""
+    box_top
+    box_line "${FG_DIM}Host     :${RESET}  ${CYAN}$(get_server_host)${RESET}"
+    box_line "${FG_DIM}Port     :${RESET}  ${WHITE}6000-19999 (UDP)${RESET}"
+    box_divider
+    box_line "${FG_DIM}Username :${RESET}  ${WHITE}${username}${RESET}"
+    box_line "${FG_DIM}Password :${RESET}  ${CYAN}${password}${RESET}"
+    box_divider
+    box_line "${FG_DIM}Dibuat   :${RESET}  ${FG_SUBTLE}$(format_date "$created_at")${RESET}"
+    box_line "${FG_DIM}Expired  :${RESET}  ${YELLOW}$(format_date "$expired_at")${RESET}"
+    box_bottom
     press_enter
 }
 
@@ -208,7 +216,8 @@ add_account() {
 # ---------------------------------------------------------------------------
 delete_account() {
     print_header
-    echo -e "${BOLD}  Hapus Akun${RESET}"
+    echo ""
+    section_title "Hapus Akun"
     echo ""
 
     local total
@@ -223,7 +232,7 @@ delete_account() {
     list_accounts_inline
 
     local username
-    echo -en "  Username yang akan dihapus: "
+    echo -en "    ${FG_DIM}Username yang akan dihapus:${RESET} "
     read -r username
     username=$(echo "$username" | tr -d ' ')
 
@@ -255,13 +264,14 @@ delete_account() {
 # ---------------------------------------------------------------------------
 set_expired_account() {
     print_header
-    echo -e "${BOLD}  Set Tanggal Expired Akun${RESET}"
+    echo ""
+    section_title "Set Tanggal Expired Akun"
     echo ""
 
     list_accounts_inline
 
     local username
-    echo -en "  Username: "
+    echo -en "    ${FG_DIM}Username:${RESET} "
     read -r username
     username=$(echo "$username" | tr -d ' ')
 
@@ -273,7 +283,7 @@ set_expired_account() {
 
     local datestr
     while true; do
-        echo -en "  Tanggal expired baru (YYYY-MM-DD): "
+        echo -en "    ${FG_DIM}Tanggal expired baru${RESET} ${FG_SUBTLE}(YYYY-MM-DD):${RESET} "
         read -r datestr
         validate_date "$datestr" && break
     done
@@ -298,13 +308,14 @@ set_expired_account() {
 # ---------------------------------------------------------------------------
 extend_account() {
     print_header
-    echo -e "${BOLD}  Perpanjang Akun${RESET}"
+    echo ""
+    section_title "Perpanjang Akun"
     echo ""
 
     list_accounts_inline
 
     local username
-    echo -en "  Username: "
+    echo -en "    ${FG_DIM}Username:${RESET} "
     read -r username
     username=$(echo "$username" | tr -d ' ')
 
@@ -316,7 +327,7 @@ extend_account() {
 
     local days
     while true; do
-        echo -en "  Tambah berapa hari [Enter = 30]: "
+        echo -en "    ${FG_DIM}Tambah berapa hari${RESET} ${FG_SUBTLE}[Enter = 30]:${RESET} "
         read -r days
         if [[ -z "$days" ]]; then days=30; break; fi
         validate_days "$days" && break
@@ -355,13 +366,14 @@ extend_account() {
 # ---------------------------------------------------------------------------
 create_trial_account() {
     print_header
-    echo -e "${BOLD}  Buat Akun Trial${RESET}"
+    echo ""
+    section_title "Buat Akun Trial"
     echo ""
 
     # Username
     local username
     while true; do
-        echo -en "  Username untuk trial: "
+        echo -en "    ${FG_DIM}Username untuk trial:${RESET} "
         read -r username
         username=$(echo "$username" | tr -d ' ')
         validate_username "$username" || continue
@@ -375,7 +387,7 @@ create_trial_account() {
     # Trial duration (default 1 day)
     local days
     while true; do
-        echo -en "  Durasi trial (hari) [Enter = 1]: "
+        echo -en "    ${FG_DIM}Durasi trial${RESET} ${FG_SUBTLE}(hari) [Enter = 1]:${RESET} "
         read -r days
         if [[ -z "$days" ]]; then days=1; break; fi
         validate_days "$days" && break
@@ -388,10 +400,12 @@ create_trial_account() {
     expired_at=$(date_add_days "$days")
 
     echo ""
-    echo -e "  ${BOLD}Info Akun Trial:${RESET}"
-    echo -e "  Username  : ${WHITE}${username}${RESET}"
-    echo -e "  Password  : ${CYAN}${password}${RESET}"
-    echo -e "  Expired   : ${YELLOW}$(format_date "$expired_at")${RESET} (${days} hari)"
+    divider "subtle"
+    echo -e "    ${BOLD}Info Akun Trial:${RESET}"
+    echo -e "    ${FG_DIM}Username  :${RESET}  ${WHITE}${username}${RESET}"
+    echo -e "    ${FG_DIM}Password  :${RESET}  ${CYAN}${password}${RESET}"
+    echo -e "    ${FG_DIM}Expired   :${RESET}  ${YELLOW}$(format_date "$expired_at")${RESET} (${days} hari)"
+    divider "subtle"
     echo ""
 
     confirm "  Buat akun trial ini?" || { print_warn "Dibatalkan."; press_enter; return; }
@@ -414,15 +428,18 @@ create_trial_account() {
     echo ""
     print_success "Akun trial '${username}' berhasil dibuat!"
     echo ""
-    echo -e "  ${BOLD}Info akun trial untuk diberikan ke pengguna:${RESET}"
-    echo -e "  ┌────────────────────────────────────────────┐"
-    echo -e "  │  Host     : ${CYAN}$(get_server_host)${RESET}"
-    echo -e "  │  Port     : ${WHITE}6000-19999 (UDP)${RESET}"
-    echo -e "  │  Username : ${WHITE}${username}${RESET}"
-    echo -e "  │  Password : ${CYAN}${password}${RESET}"
-    echo -e "  │  Dibuat   : ${GRAY}$(format_date "$created_at")${RESET}"
-    echo -e "  │  Expired  : ${YELLOW}$(format_date "$expired_at")${RESET} (${days} hari)"
-    echo -e "  └────────────────────────────────────────────┘"
+    echo -e "    ${BOLD}Info akun trial untuk diberikan ke pengguna:${RESET}"
+    echo ""
+    box_top
+    box_line "${FG_DIM}Host     :${RESET}  ${CYAN}$(get_server_host)${RESET}"
+    box_line "${FG_DIM}Port     :${RESET}  ${WHITE}6000-19999 (UDP)${RESET}"
+    box_divider
+    box_line "${FG_DIM}Username :${RESET}  ${WHITE}${username}${RESET}"
+    box_line "${FG_DIM}Password :${RESET}  ${CYAN}${password}${RESET}"
+    box_divider
+    box_line "${FG_DIM}Dibuat   :${RESET}  ${FG_SUBTLE}$(format_date "$created_at")${RESET}"
+    box_line "${FG_DIM}Expired  :${RESET}  ${YELLOW}$(format_date "$expired_at")${RESET} (${days} hari)"
+    box_bottom
     press_enter
 }
 
@@ -471,9 +488,9 @@ list_accounts_inline() {
         return
     fi
 
-    printf "  ${GRAY}%-4s %-16s %-14s %-10s %-22s${RESET}\n" \
+    printf "    ${FG_DIM}%-4s${RESET} ${BOLD}%-16s${RESET} ${BOLD}%-14s${RESET} ${BOLD}%-10s${RESET} ${BOLD}%-22s${RESET}\n" \
         "No" "Username" "Password" "Status" "Expired At"
-    divider
+    divider "subtle"
 
     local i=0
     while IFS= read -r acc; do
@@ -491,10 +508,10 @@ list_accounts_inline() {
             disabled)color="$GRAY"  ;;
         esac
 
-        printf "  ${GRAY}%-4s${RESET} %-16s ${CYAN}%-14s${RESET} ${color}%-10s${RESET} %-22s\n" \
+        printf "    ${FG_DIM}%-4s${RESET} %-16s ${CYAN}%-14s${RESET} ${color}%-10s${RESET} %-22s\n" \
             "$i" "$username" "$password" "$status" "$(format_date "$expired_at")"
     done < <(jq -c '.accounts[]' "$ACCOUNTS_FILE")
 
-    divider
+    divider "subtle"
     echo ""
 }
