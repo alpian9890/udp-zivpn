@@ -118,17 +118,17 @@ tui_menu() {
     current=${selectable[$sel_idx]}
 
     # Pre-compute separator strings
-    local sep50 sep60
-    sep50=$(printf '─%.0s' {1..50})
-    sep60=$(printf '─%.0s' {1..60})
+    local sep_subtle sep_bottom
+    sep_subtle=$(printf '┄%.0s' {1..50})
+    sep_bottom=$(printf '─%.0s' {1..56})
 
     # --- Enter TUI mode ---
     _alt_screen_on
     _cursor_hide
     stty -echo 2>/dev/null
 
-    # --- Render header once (no clear per keypress, no repeated network calls) ---
-    printf '\e[H\e[2J' >/dev/tty   # home + clear (once only)
+    # --- Render header once ---
+    printf '\e[H\e[2J' >/dev/tty
 
     local host domain host_label total_acc active expired
     domain=$(get_custom_domain)
@@ -143,18 +143,32 @@ tui_menu() {
     active=$(jq '[.accounts[] | select(.status == "active")] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
     expired=$(jq '[.accounts[] | select(.status == "expired")] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
 
+    local ver="v${ZIVPN_MANAGER_VERSION:-1.0}"
+    local h_line
+    h_line=$(printf '─%.0s' {1..56})
+
     {
-        printf '%b\n' "${BLUE}${BOLD}"
-        echo "  ╔══════════════════════════════════════════════════════════╗"
-        printf '  ║         ZiVPN Account Manager %-26s ║\n' "v${ZIVPN_MANAGER_VERSION:-1.0}"
-        echo "  ╚══════════════════════════════════════════════════════════╝"
-        printf '%b\n' "${RESET}"
-        printf '%b\n' "  ${GRAY}${host_label} :${RESET} ${WHITE}${host}${RESET}"
-        printf '%b\n' "  ${GRAY}Total Akun :${RESET} ${WHITE}${total_acc}${RESET}  |  ${GREEN}Aktif: ${active}${RESET}  |  ${RED}Expired: ${expired}${RESET}"
-        printf '%b\n' "${GRAY}${sep60}${RESET}"
-        printf '%b\n' "${BOLD}  ${title}${RESET}"
         echo ""
-        printf '%b\n' "  ${GRAY}Gunakan ↑↓ untuk memilih, Enter untuk konfirmasi, ESC untuk keluar${RESET}"
+        printf '%b  %b%b%b%b\n' "${RESET}" "\033[38;5;75m" "╭" "$h_line" "╮"
+        printf '%b  %b│%56s│%b\n' "${RESET}" "\033[38;5;75m" "" "${RESET}"
+        printf '  \033[38;5;75m│\033[0m  \033[1m\033[38;5;117m         ⚡  ZiVPN Account Manager  %-17s\033[0m  \033[38;5;75m│\033[0m\n' "$ver"
+        printf '%b  %b│%56s│%b\n' "${RESET}" "\033[38;5;75m" "" "${RESET}"
+        printf '%b  %b%b%b%b%b\n' "${RESET}" "\033[38;5;75m" "╰" "$h_line" "╯" "${RESET}"
+        echo ""
+        printf '%b    %b%b :%b  %b%b%b\n' "${RESET}" "\033[38;5;243m" "$host_label" "${RESET}" "\033[1;37m" "$host" "${RESET}"
+        printf '%b    %b%b :%b  %b%b%b  %b│%b  %b●%b %bAktif: %b%b  %b│%b  %b●%b %bExpired: %b%b\n' \
+            "${RESET}" "\033[38;5;243m" "Total Akun" "${RESET}" "\033[1;37m" "$total_acc" "${RESET}" \
+            "\033[38;5;240m" "${RESET}" "\033[0;32m" "${RESET}" "\033[0;32m" "$active" "${RESET}" \
+            "\033[38;5;240m" "${RESET}" "\033[0;31m" "${RESET}" "\033[0;31m" "$expired" "${RESET}"
+        echo ""
+
+        # Section title for menu
+        local title_len=${#title}
+        local title_line_len=$(( 54 - title_len ))
+        printf '  \033[38;5;75m──\033[0m \033[1m\033[38;5;75m%s\033[0m \033[38;5;75m%s\033[0m\n' \
+            "$title" "$(printf '─%.0s' $(seq 1 $title_line_len))"
+        echo ""
+        printf '%b    %b↑↓ Pilih  ·  Enter Konfirmasi  ·  Esc Keluar%b\n' "${RESET}" "\033[38;5;240m" "${RESET}"
         echo ""
     } >/dev/tty
 
@@ -162,33 +176,30 @@ tui_menu() {
     _save_cursor
 
     while true; do
-        # Restore cursor to start of menu items
         _restore_cursor
 
-        # Build entire menu in a buffer for atomic (flicker-free) write
+        # Build entire menu in a buffer for atomic write
         local buf=""
         for ((i = 0; i < total; i++)); do
             local item="${_items[$i]}"
             if [[ "$item" == "-" ]]; then
-                buf+="\e[2K  \e[0;90m${sep50}\e[0m\n"
+                buf+="\e[2K    \e[38;5;240m${sep_subtle}\e[0m\n"
             else
                 local label="${item%%|*}"
                 if ((i == current)); then
                     buf+="\e[2K"
-                    buf+=$(printf '  \e[0;30;46m ▸ %-48s\e[0m\n' "$label")
+                    buf+=$(printf '    \e[1m\e[48;5;24m\e[38;5;255m  ▸ %-48s\e[0m\n' "$label")
                 else
-                    buf+="\e[2K     ${label}\n"
+                    buf+="\e[2K\e[38;5;252m      ${label}\e[0m\n"
                 fi
             fi
         done
         buf+="\e[2K\n"
-        buf+="\e[2K\e[0;90m${sep60}\e[0m\n"
-        buf+="\e[J"   # clear any leftover lines below
+        buf+="\e[2K  \e[38;5;243m${sep_bottom}\e[0m\n"
+        buf+="\e[J"
 
-        # Single atomic write — no flicker
         printf '%b' "$buf" >/dev/tty
 
-        # Read key
         local key
         key=$(read_key)
 
@@ -215,7 +226,6 @@ tui_menu() {
                 _alt_screen_off
                 _cursor_show
                 stty echo 2>/dev/null
-                # Only the action_id goes to stdout (captured by $())
                 local selected="${_items[$current]}"
                 echo "${selected#*|}"
                 return 0
@@ -249,20 +259,19 @@ tui_confirm() {
     while true; do
         local yes_style no_style
         if ((selected == 0)); then
-            yes_style="\e[0;30;42m"  # Black on green
-            no_style="\e[0;90m"
+            yes_style="\e[1m\e[48;5;22m\e[38;5;255m"  # Bold, dark green bg, white
+            no_style="\e[38;5;243m"
         else
-            yes_style="\e[0;90m"
-            no_style="\e[0;30;41m"   # Black on red
+            yes_style="\e[38;5;243m"
+            no_style="\e[1m\e[48;5;52m\e[38;5;255m"    # Bold, dark red bg, white
         fi
 
-        # Render on single line (overwrite previous) — all to /dev/tty
         {
             printf '\r\e[2K'
-            printf '  \e[1;33m%s\e[0m  ' "$message"
-            printf '%b Ya \e[0m  ' "$yes_style"
-            printf '%b Tidak \e[0m ' "$no_style"
-            printf '  \e[0;90m(←→ pilih, Enter konfirmasi)\e[0m'
+            printf '  \e[1;33m▸ %s\e[0m  ' "$message"
+            printf '%b  Ya  \e[0m  ' "$yes_style"
+            printf '%b  Tidak  \e[0m ' "$no_style"
+            printf '  \e[38;5;240m(←→ pilih, Enter konfirmasi)\e[0m'
         } >/dev/tty
 
         local key
