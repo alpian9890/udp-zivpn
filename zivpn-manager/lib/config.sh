@@ -52,7 +52,7 @@ restart_service() {
 
 service_status() {
     echo ""
-    print_bold "Status ZiVPN Service:"
+    echo -e "  ${BOLD}Status ZiVPN Service:${RESET}"
     divider
     systemctl status "$ZIVPN_SERVICE" --no-pager -l 2>/dev/null || \
         print_error "Tidak dapat membaca status service"
