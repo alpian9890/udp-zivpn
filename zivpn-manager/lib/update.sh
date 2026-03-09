@@ -65,37 +65,38 @@ version_gt() {
 # ---------------------------------------------------------------------------
 check_update() {
     print_header
-    echo -e "${BOLD}  Cek Update ZiVPN Manager${RESET}"
+    echo ""
+    section_title "Cek Update ZiVPN Manager"
     echo ""
 
     local local_ver remote_ver
     local_ver=$(get_local_version)
 
-    echo -e "  ${GRAY}Versi terpasang :${RESET} ${WHITE}v${local_ver}${RESET}"
-    echo -e "  ${GRAY}Mengecek versi terbaru...${RESET}"
+    echo -e "    ${FG_DIM}Versi terpasang :${RESET}  ${WHITE}v${local_ver}${RESET}"
+    echo -e "    ${FG_SUBTLE}Mengecek versi terbaru...${RESET}"
     echo ""
 
     remote_ver=$(get_remote_version)
 
     if [[ -z "$remote_ver" ]]; then
         print_error "Gagal mengecek update. Pastikan server terhubung ke internet."
-        echo -e "  ${GRAY}Repository: github.com/${GITHUB_REPO}${RESET}"
+        echo -e "    ${FG_SUBTLE}Repository: github.com/${GITHUB_REPO}${RESET}"
         press_enter
         return 1
     fi
 
-    echo -e "  ${GRAY}Versi terpasang :${RESET} ${WHITE}v${local_ver}${RESET}"
-    echo -e "  ${GRAY}Versi terbaru   :${RESET} ${CYAN}v${remote_ver}${RESET}"
+    echo -e "    ${FG_DIM}Versi terpasang :${RESET}  ${WHITE}v${local_ver}${RESET}"
+    echo -e "    ${FG_DIM}Versi terbaru   :${RESET}  ${CYAN}v${remote_ver}${RESET}"
     echo ""
 
     if version_gt "$remote_ver" "$local_ver"; then
-        echo -e "  ${GREEN}${BOLD}⬆  Update tersedia: v${local_ver} → v${remote_ver}${RESET}"
+        echo -e "    ${GREEN}${BOLD}⬆  Update tersedia: v${local_ver} → v${remote_ver}${RESET}"
         echo ""
-        echo -e "  ${GREEN}[1]${RESET} Update ke v${remote_ver}"
-        echo -e "  ${GRAY}[2]${RESET} Gunakan versi sekarang (skip)"
+        echo -e "    ${GREEN}[1]${RESET} Update ke v${remote_ver}"
+        echo -e "    ${FG_SUBTLE}[2]${RESET} Gunakan versi sekarang (skip)"
         echo ""
-        divider
-        echo -en "  Pilih [1/2]: "
+        divider "subtle"
+        echo -en "    ${FG_DIM}Pilih${RESET} [1/2]: "
         read -r choice
 
         case "$choice" in
@@ -124,7 +125,7 @@ do_update() {
     local tmp_dir
     tmp_dir=$(mktemp -d)
 
-    echo -e "  ${BOLD}Mengunduh update v${new_ver}...${RESET}"
+    echo -e "    ${BOLD}Mengunduh update v${new_ver}...${RESET}"
     echo ""
 
     mkdir -p "$tmp_dir/lib"
@@ -143,7 +144,7 @@ do_update() {
         fi
 
         local url="${GITHUB_RAW_BASE}/${file}"
-        echo -ne "  ${GRAY}Mengunduh ${file}...${RESET} "
+        echo -ne "    ${FG_SUBTLE}Mengunduh ${file}...${RESET} "
 
         if curl -sS --max-time 15 -o "${target_dir}/${filename}" "$url" 2>/dev/null; then
             # Verify downloaded file is not empty and not an error page
@@ -169,7 +170,7 @@ do_update() {
     fi
 
     # All files downloaded successfully — install them
-    echo -e "  ${BOLD}Menginstall update...${RESET}"
+    echo -e "    ${BOLD}Menginstall update...${RESET}"
 
     # Backup current version
     local backup_file="/etc/zivpn/backups/zivpn-pre-update_$(date +%Y%m%d_%H%M%S).tar.gz"
@@ -199,7 +200,7 @@ do_update() {
     echo ""
     print_success "Update berhasil! v${ZIVPN_MANAGER_VERSION} → v${new_ver}"
     echo ""
-    echo -e "  ${GRAY}Jalankan 'zivpn-manager' kembali untuk menggunakan versi baru.${RESET}"
+    echo -e "    ${FG_SUBTLE}Jalankan 'zivpn-manager' kembali untuk menggunakan versi baru.${RESET}"
 }
 
 # ---------------------------------------------------------------------------
