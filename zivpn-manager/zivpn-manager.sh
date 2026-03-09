@@ -20,7 +20,7 @@ source "$MANAGER_DIR/lib/uninstall.sh"
 # Check root
 # ---------------------------------------------------------------------------
 if [[ "$EUID" -ne 0 ]]; then
-    echo -e "\033[0;31m[✗]\033[0m Script ini harus dijalankan sebagai root (sudo)"
+    echo -e "\033[0;31m  ✗  Script ini harus dijalankan sebagai root (sudo)\033[0m"
     exit 1
 fi
 
@@ -46,7 +46,8 @@ action_backups() { list_backups; }
 
 action_restart() {
     print_header
-    echo -e "${BOLD}  Restart ZiVPN Service${RESET}"
+    echo ""
+    section_title "Restart ZiVPN Service"
     echo ""
     confirm "  Restart service zivpn sekarang?" || { press_enter; return; }
     echo ""
@@ -56,13 +57,16 @@ action_restart() {
 
 action_status() {
     print_header
+    echo ""
+    section_title "Status ZiVPN Service"
     service_status
     press_enter
 }
 
 action_info() {
     print_header
-    echo -e "${BOLD}  Info Server & Konfigurasi ZiVPN${RESET}"
+    echo ""
+    section_title "Info Server & Konfigurasi ZiVPN"
     echo ""
 
     local ipv4 domain port obfs
@@ -71,48 +75,53 @@ action_info() {
     port=$(jq -r '.listen' /etc/zivpn/config.json 2>/dev/null | tr -d ':')
     obfs=$(jq -r '.obfs' /etc/zivpn/config.json 2>/dev/null)
 
-    echo -e "  ${GRAY}IP Publik v4  :${RESET} ${WHITE}${ipv4}${RESET}"
+    box_top
+    box_line "${FG_DIM}IP Publik v4  :${RESET}  ${WHITE}${ipv4}${RESET}"
     if [[ -n "$domain" ]]; then
-        echo -e "  ${GRAY}Custom Domain :${RESET} ${CYAN}${domain}${RESET}"
+        box_line "${FG_DIM}Custom Domain :${RESET}  ${CYAN}${domain}${RESET}"
     else
-        echo -e "  ${GRAY}Custom Domain :${RESET} ${GRAY}(belum diset)${RESET}"
+        box_line "${FG_DIM}Custom Domain :${RESET}  ${FG_SUBTLE}(belum diset)${RESET}"
     fi
-    echo -e "  ${GRAY}Port Internal :${RESET} ${WHITE}${port}${RESET}"
-    echo -e "  ${GRAY}Port Eksternal:${RESET} ${WHITE}6000-19999 (UDP)${RESET}"
-    echo -e "  ${GRAY}Obfuscation   :${RESET} ${WHITE}${obfs}${RESET}"
-    echo -e "  ${GRAY}Config        :${RESET} ${WHITE}/etc/zivpn/config.json${RESET}"
-    echo -e "  ${GRAY}Accounts DB   :${RESET} ${WHITE}${ACCOUNTS_FILE}${RESET}"
+    box_divider
+    box_line "${FG_DIM}Port Internal :${RESET}  ${WHITE}${port}${RESET}"
+    box_line "${FG_DIM}Port Eksternal:${RESET}  ${WHITE}6000-19999 (UDP)${RESET}"
+    box_line "${FG_DIM}Obfuscation   :${RESET}  ${WHITE}${obfs}${RESET}"
+    box_divider
+    box_line "${FG_DIM}Config        :${RESET}  ${FG_SUBTLE}/etc/zivpn/config.json${RESET}"
+    box_line "${FG_DIM}Accounts DB   :${RESET}  ${FG_SUBTLE}${ACCOUNTS_FILE}${RESET}"
+    box_bottom
     echo ""
 
     local svc_color svc_label
     if service_is_active; then
-        svc_color="$GREEN"; svc_label="Running"
+        svc_color="$GREEN"; svc_label="● Running"
     else
-        svc_color="$RED"; svc_label="Stopped"
+        svc_color="$RED"; svc_label="● Stopped"
     fi
-    echo -e "  ${GRAY}Service Status:${RESET} ${svc_color}${svc_label}${RESET}"
+    echo -e "    ${FG_DIM}Service Status:${RESET}  ${svc_color}${svc_label}${RESET}"
     echo ""
     press_enter
 }
 
 action_domain() {
     print_header
-    echo -e "${BOLD}  Custom Domain${RESET}"
+    echo ""
+    section_title "Custom Domain"
     echo ""
 
     local current
     current=$(get_custom_domain)
     if [[ -n "$current" ]]; then
-        echo -e "  Domain saat ini : ${CYAN}${current}${RESET}"
+        echo -e "    ${FG_DIM}Domain saat ini :${RESET}  ${CYAN}${current}${RESET}"
     else
-        echo -e "  Domain saat ini : ${GRAY}(belum diset)${RESET}"
+        echo -e "    ${FG_DIM}Domain saat ini :${RESET}  ${FG_SUBTLE}(belum diset)${RESET}"
     fi
     echo ""
-    echo -e "  ${GRAY}Masukkan domain yang sudah di-pointing ke IP server ini.${RESET}"
-    echo -e "  ${GRAY}Contoh: vpn.namadomain.com${RESET}"
-    echo -e "  ${GRAY}Biarkan kosong + Enter untuk menghapus domain.${RESET}"
+    echo -e "    ${FG_SUBTLE}Masukkan domain yang sudah di-pointing ke IP server ini.${RESET}"
+    echo -e "    ${FG_SUBTLE}Contoh: vpn.namadomain.com${RESET}"
+    echo -e "    ${FG_SUBTLE}Biarkan kosong + Enter untuk menghapus domain.${RESET}"
     echo ""
-    echo -en "  Domain baru: "
+    echo -en "    ${FG_DIM}Domain baru:${RESET} "
     read -r new_domain
     new_domain=$(echo "$new_domain" | tr -d ' ')
 
@@ -128,7 +137,7 @@ action_domain() {
     else
         set_custom_domain "$new_domain"
         print_success "Custom domain disimpan: ${CYAN}${new_domain}${RESET}"
-        echo -e "  ${GRAY}Domain ini akan ditampilkan di header dan info akun.${RESET}"
+        echo -e "    ${FG_SUBTLE}Domain ini akan ditampilkan di header dan info akun.${RESET}"
     fi
     press_enter
 }
