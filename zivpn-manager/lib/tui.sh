@@ -188,9 +188,9 @@ tui_menu() {
                 local label="${item%%|*}"
                 if ((i == current)); then
                     buf+="\e[2K"
-                    buf+=$(printf '    \e[1m\e[48;5;24m\e[38;5;255m  ▸ %-48s\e[0m\n' "$label")
+                    buf+=$(printf '    \e[1m\e[48;5;33m\e[38;5;255m  ▸ %-48s\e[0m\n' "$label")
                 else
-                    buf+="\e[2K\e[38;5;252m      ${label}\e[0m\n"
+                    buf+="\e[2K\e[38;5;250m      ${label}\e[0m\n"
                 fi
             fi
         done
