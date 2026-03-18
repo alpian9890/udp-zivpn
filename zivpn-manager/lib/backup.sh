@@ -77,6 +77,13 @@ backup_data() {
         echo ""
         echo -e "    ${FG_DIM}Salin file ini ke server baru untuk restore:${RESET}"
         echo -e "    ${CYAN}scp ${backup_file} root@<IP_SERVER_BARU>:/etc/zivpn/backups/${RESET}"
+
+        if [[ -f "/etc/zivpn/telegram.conf" ]]; then
+            echo ""
+            if confirm "  Kirim backup ini ke Telegram sekarang?"; then
+                send_backup_to_telegram "$backup_file"
+            fi
+        fi
     else
         print_error "Gagal membuat backup."
     fi

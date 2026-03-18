@@ -1,0 +1,14 @@
+# =============================================================================
+# telegram.conf.example — Contoh konfigurasi Bot Telegram untuk ZiVPN
+# =============================================================================
+# PENTING: Jangan isi data asli Anda di file ini jika repo bersifat publik!
+# 
+# Untuk mengatur bot telegram:
+# 1. Buka ZiVPN Manager (Ketik 'zivpn' di terminal)
+# 2. Pilih menu "Bot Telegram"
+# 3. Masukkan Token dan Chat ID Anda melalui menu tersebut.
+# 
+# Sistem akan otomatis menyimpannya secara rahasia di /etc/zivpn/telegram.conf
+
+BOT_TOKEN="1234567890:AAH_ContohTokenBotTelegramAnda_ABC"
+CHAT_ID="123456789"

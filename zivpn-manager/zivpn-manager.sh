@@ -13,6 +13,7 @@ source "$MANAGER_DIR/lib/account.sh"
 source "$MANAGER_DIR/lib/backup.sh"
 source "$MANAGER_DIR/lib/help.sh"
 source "$MANAGER_DIR/lib/update.sh"
+source "$MANAGER_DIR/lib/telegram.sh"
 source "$MANAGER_DIR/lib/tui.sh"
 source "$MANAGER_DIR/lib/uninstall.sh"
 
@@ -147,6 +148,7 @@ action_domain() {
     wait_for_esc
 }
 
+action_telegram() { config_telegram; }
 action_help() { show_usage; wait_for_esc; }
 action_update() { check_update; }
 action_uninstall() { uninstall_zivpn; }
@@ -164,6 +166,7 @@ dispatch_action() {
         extend)       action_extend ;;
         trial)        action_trial ;;
         domain)       action_domain ;;
+        telegram)     action_telegram ;;
         backup)       action_backup ;;
         restore)      action_restore ;;
         backups)      action_backups ;;
@@ -192,6 +195,7 @@ MENU_ITEMS=(
     "Perpanjang Akun|extend"
     "Buat Akun Trial|trial"
     "Custom Domain|domain"
+    "Bot Telegram|telegram"
     "-"
     "Backup Data|backup"
     "Restore Data|restore"
@@ -236,6 +240,7 @@ case "${1:-}" in
     extend)       action_extend ;;
     trial)        action_trial ;;
     domain)       action_domain ;;
+    telegram)     action_telegram ;;
     backup)       action_backup ;;
     restore)      action_restore ;;
     backups)      action_backups ;;

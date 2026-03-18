@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# =============================================================================
+# telegram.sh — Telegram Bot config and notification helpers
+# =============================================================================
+
+TELEGRAM_CONFIG="/etc/zivpn/telegram.conf"
+
+config_telegram() {
+    print_header
+    echo ""
+    section_title "Konfigurasi Bot Telegram"
+    echo ""
+
+    local current_token="" current_chat_id=""
+    if [[ -f "$TELEGRAM_CONFIG" ]]; then
+        source "$TELEGRAM_CONFIG"
+        current_token="$BOT_TOKEN"
+        current_chat_id="$CHAT_ID"
+    fi
+
+    if [[ -n "$current_token" && -n "$current_chat_id" ]]; then
+        echo -e "    ${FG_DIM}Status      :${RESET}  ${GREEN}Terkonfigurasi${RESET}"
+        echo -e "    ${FG_DIM}Chat ID     :${RESET}  ${CYAN}${current_chat_id}${RESET}"
+    else
+        echo -e "    ${FG_DIM}Status      :${RESET}  ${FG_SUBTLE}Belum dikonfigurasi${RESET}"
+    fi
+
+    echo ""
+    echo -e "    ${FG_SUBTLE}Kosongkan input dan tekan Enter untuk menghapus konfigurasi.${RESET}"
+    echo ""
+
+    local new_token new_chat_id
+    echo -en "    ${FG_DIM}Bot Token baru:${RESET} "
+    read -r new_token
+    new_token=$(echo "$new_token" | tr -d ' ')
+
+    if [[ -z "$new_token" ]]; then
+        if [[ -f "$TELEGRAM_CONFIG" ]]; then
+            confirm "  Hapus konfigurasi Telegram?" || { wait_for_esc; return; }
+            rm -f "$TELEGRAM_CONFIG"
+            print_success "Konfigurasi Telegram dihapus."
+        else
+            print_info "Dibatalkan."
+        fi
+        wait_for_esc
+        return
+    fi
+
+    echo -en "    ${FG_DIM}Chat ID baru:${RESET} "
+    read -r new_chat_id
+    new_chat_id=$(echo "$new_chat_id" | tr -d ' ')
+
+    if [[ -z "$new_chat_id" ]]; then
+        print_error "Chat ID tidak boleh kosong jika Token diisi."
+        wait_for_esc
+        return
+    fi
+
+    # Save to local server safely
+    echo "BOT_TOKEN=\"${new_token}\"" > "$TELEGRAM_CONFIG"
+    echo "CHAT_ID=\"${new_chat_id}\"" >> "$TELEGRAM_CONFIG"
+    chmod 600 "$TELEGRAM_CONFIG"
+
+    print_success "Konfigurasi Telegram berhasil disimpan!"
+    echo ""
+    print_info "Mengirim pesan test ke Telegram..."
+    
+    local test_msg="✅ *ZiVPN Manager*%0AKonfigurasi Telegram berhasil dihubungkan ke server!"
+    local response
+    response=$(curl -s -X POST "https://api.telegram.org/bot${new_token}/sendMessage" \
+        -d chat_id="${new_chat_id}" \
+        -d text="${test_msg}" \
+        -d parse_mode="Markdown")
+
+    if echo "$response" | grep -q '"ok":true'; then
+        print_success "Pesan test terkirim! Cek aplikasi Telegram Anda."
+    else
+        print_error "Gagal mengirim pesan test. Pastikan Token dan Chat ID benar,"
+        print_error "dan Anda sudah klik START / mengirim pesan ke bot tersebut."
+    fi
+
+    wait_for_esc
+}
+
+send_backup_to_telegram() {
+    local file_path="$1"
+    if [[ ! -f "$TELEGRAM_CONFIG" ]]; then
+        return 1
+    fi
+
+    source "$TELEGRAM_CONFIG"
+    if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
+        return 1
+    fi
+
+    echo ""
+    print_info "Mengirim file backup ke Telegram..."
+    local hostname
+    hostname=$(get_server_host)
+    local caption="📦 *ZiVPN Backup* - ${hostname}%0A%0ABackup file: \`$(basename "$file_path")\`"
+
+    local response
+    response=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" \
+        -F chat_id="${CHAT_ID}" \
+        -F document=@"${file_path}" \
+        -F caption="${caption}" \
+        -F parse_mode="Markdown")
+
+    if echo "$response" | grep -q '"ok":true'; then
+        print_success "Backup berhasil dikirim ke Telegram!"
+        return 0
+    else
+        print_error "Gagal mengirim backup ke Telegram."
+        return 1
+    fi
+}
