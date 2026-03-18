@@ -187,9 +187,7 @@ add_account() {
         '{username: $u, password: $pw, created_at: $ca, expired_at: $ea,
           status: "active", trial: false, note: ""}')
 
-    local tmp
-    tmp=$(mktemp)
-    jq --argjson entry "$new_entry" '.accounts += [$entry]' "$ACCOUNTS_FILE" > "$tmp" && mv "$tmp" "$ACCOUNTS_FILE"
+    modify_accounts_json --argjson entry "$new_entry" '.accounts += [$entry]'
 
     sync_config
 
@@ -249,9 +247,7 @@ delete_account() {
         return
     }
 
-    local tmp
-    tmp=$(mktemp)
-    jq --arg u "$username" 'del(.accounts[] | select(.username == $u))' "$ACCOUNTS_FILE" > "$tmp" && mv "$tmp" "$ACCOUNTS_FILE"
+    modify_accounts_json --arg u "$username" 'del(.accounts[] | select(.username == $u))'
 
     sync_config
 
@@ -291,11 +287,8 @@ set_expired_account() {
     local expired_at
     expired_at=$(date -u -d "$datestr" +"%Y-%m-%dT%H:%M:%SZ")
 
-    local tmp
-    tmp=$(mktemp)
-    jq --arg u "$username" --arg ea "$expired_at" \
-        '(.accounts[] | select(.username == $u)) |= (.expired_at = $ea | .status = "active")' \
-        "$ACCOUNTS_FILE" > "$tmp" && mv "$tmp" "$ACCOUNTS_FILE"
+    modify_accounts_json --arg u "$username" --arg ea "$expired_at" \
+        '(.accounts[] | select(.username == $u)) |= (.expired_at = $ea | .status = "active")'
 
     sync_config
 
@@ -349,11 +342,8 @@ extend_account() {
         fi
     fi
 
-    local tmp
-    tmp=$(mktemp)
-    jq --arg u "$username" --arg ea "$new_exp" \
-        '(.accounts[] | select(.username == $u)) |= (.expired_at = $ea | .status = "active" | .trial = false)' \
-        "$ACCOUNTS_FILE" > "$tmp" && mv "$tmp" "$ACCOUNTS_FILE"
+    modify_accounts_json --arg u "$username" --arg ea "$new_exp" \
+        '(.accounts[] | select(.username == $u)) |= (.expired_at = $ea | .status = "active" | .trial = false)'
 
     sync_config
 
@@ -419,9 +409,7 @@ create_trial_account() {
         '{username: $u, password: $pw, created_at: $ca, expired_at: $ea,
           status: "active", trial: true, note: "trial"}')
 
-    local tmp
-    tmp=$(mktemp)
-    jq --argjson entry "$new_entry" '.accounts += [$entry]' "$ACCOUNTS_FILE" > "$tmp" && mv "$tmp" "$ACCOUNTS_FILE"
+    modify_accounts_json --argjson entry "$new_entry" '.accounts += [$entry]'
 
     sync_config
 
@@ -447,32 +435,22 @@ create_trial_account() {
 # expire_checker — Called by cron: mark overdue accounts as expired
 # ---------------------------------------------------------------------------
 expire_checker() {
-    local changed=0
-    local now_epoch
-    now_epoch=$(date -u +%s)
+    local now_iso
+    now_iso=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    while IFS= read -r acc; do
-        local username status expired_at exp_epoch
-        username=$(echo "$acc"   | jq -r '.username')
-        status=$(echo "$acc"     | jq -r '.status')
-        expired_at=$(echo "$acc" | jq -r '.expired_at')
+    local to_expire
+    to_expire=$(jq --arg now "$now_iso" '[.accounts[] | select(.status == "active" and .expired_at != null and .expired_at != "" and .expired_at <= $now)] | length' "$ACCOUNTS_FILE" 2>/dev/null || echo 0)
 
-        [[ "$status" != "active" ]] && continue
-        [[ -z "$expired_at" || "$expired_at" == "null" ]] && continue
-
-        exp_epoch=$(date -u -d "$expired_at" +%s 2>/dev/null) || continue
-
-        if (( exp_epoch <= now_epoch )); then
-            local tmp
-            tmp=$(mktemp)
-            jq --arg u "$username" \
-                '(.accounts[] | select(.username == $u)) |= (.status = "expired")' \
-                "$ACCOUNTS_FILE" > "$tmp" && mv "$tmp" "$ACCOUNTS_FILE"
-            changed=1
-        fi
-    done < <(jq -c '.accounts[]' "$ACCOUNTS_FILE")
-
-    if [[ "$changed" -eq 1 ]]; then
+    if [[ "$to_expire" -gt 0 ]]; then
+        modify_accounts_json --arg now "$now_iso" '
+            .accounts |= map(
+                if .status == "active" and .expired_at != null and .expired_at != "" and .expired_at <= $now then
+                    .status = "expired"
+                else
+                    .
+                end
+            )
+        '
         sync_config > /dev/null 2>&1
     fi
 }

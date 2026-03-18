@@ -125,6 +125,11 @@ action_domain() {
     read -r new_domain
     new_domain=$(echo "$new_domain" | tr -d ' ')
 
+    if [[ -n "$new_domain" ]] && ! validate_domain "$new_domain"; then
+        press_enter
+        return
+    fi
+
     if [[ -z "$new_domain" ]]; then
         if [[ -n "$current" ]]; then
             confirm "  Hapus custom domain '${current}'?" || { print_warn "Dibatalkan."; press_enter; return; }

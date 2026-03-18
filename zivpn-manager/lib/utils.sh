@@ -262,6 +262,7 @@ validate_date() {
 # --- Confirm prompt ----------------------------------------------------------
 confirm() {
     local msg="${1:-Yakin?}"
+    local answer
     echo -en "  ${YELLOW}▸ ${msg} ${FG_DIM}(y/n):${RESET} "
     read -r answer
     [[ "$answer" =~ ^[Yy]$ ]]
@@ -287,4 +288,33 @@ check_deps() {
         print_info "Install dengan: apt-get install -y ${missing[*]}"
         exit 1
     fi
+}
+
+validate_domain() {
+    local domain="$1"
+    if [[ ! "$domain" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+        print_error "Format domain tidak valid. Hanya gunakan huruf, angka, titik, dan strip (-)"
+        return 1
+    fi
+    return 0
+}
+
+# --- Database helpers --------------------------------------------------------
+modify_accounts_json() {
+    local lockfile="/var/lock/zivpn-accounts.lock"
+    mkdir -p /var/lock
+    (
+        flock -x 200
+        local tmp
+        tmp=$(mktemp)
+        if jq "$@" "$ACCOUNTS_FILE" > "$tmp"; then
+            if [[ -s "$tmp" ]] && jq -e . "$tmp" >/dev/null 2>&1; then
+                cat "$tmp" > "$ACCOUNTS_FILE"
+                rm -f "$tmp"
+                return 0
+            fi
+        fi
+        rm -f "$tmp"
+        return 1
+    ) 200>"$lockfile"
 }
