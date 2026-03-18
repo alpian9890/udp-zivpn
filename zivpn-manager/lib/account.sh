@@ -149,8 +149,13 @@ add_account() {
     local password
     local auto_pw
     auto_pw=$(generate_password 10)
-    echo -en "    ${FG_DIM}Password${RESET} ${FG_SUBTLE}[Enter = auto: ${CYAN}${auto_pw}${RESET}${FG_SUBTLE}]:${RESET} "
+    echo -en "    ${FG_DIM}Password${RESET} ${FG_SUBTLE}[Enter = auto: ${CYAN}${auto_pw}${RESET}${FG_SUBTLE}, 0 = batal]:${RESET} "
     read -r password
+    if [[ "$password" == "0" ]]; then
+        print_info "Dibatalkan."
+        wait_for_esc
+        return
+    fi
     if [[ -z "$password" ]]; then
         password="$auto_pw"
     fi
@@ -161,8 +166,13 @@ add_account() {
     # Duration
     local days
     while true; do
-        echo -en "    ${FG_DIM}Durasi${RESET} ${FG_SUBTLE}(hari) [Enter = 30]:${RESET} "
+        echo -en "    ${FG_DIM}Durasi${RESET} ${FG_SUBTLE}(hari) [Enter = 30, 0 = batal]:${RESET} "
         read -r days
+        if [[ "$days" == "0" ]]; then
+            print_info "Dibatalkan."
+            wait_for_esc
+            return
+        fi
         if [[ -z "$days" ]]; then
             days=30
             break
@@ -312,8 +322,13 @@ set_expired_account() {
 
     local datestr
     while true; do
-        echo -en "    ${FG_DIM}Tanggal expired baru${RESET} ${FG_SUBTLE}(YYYY-MM-DD):${RESET} "
+        echo -en "    ${FG_DIM}Tanggal expired baru${RESET} ${FG_SUBTLE}(YYYY-MM-DD, 0 = batal):${RESET} "
         read -r datestr
+        if [[ "$datestr" == "0" ]]; then
+            print_info "Dibatalkan."
+            wait_for_esc
+            return
+        fi
         validate_date "$datestr" && break
     done
 
@@ -369,8 +384,13 @@ extend_account() {
 
     local days
     while true; do
-        echo -en "    ${FG_DIM}Tambah berapa hari${RESET} ${FG_SUBTLE}[Enter = 30]:${RESET} "
+        echo -en "    ${FG_DIM}Tambah berapa hari${RESET} ${FG_SUBTLE}[Enter = 30, 0 = batal]:${RESET} "
         read -r days
+        if [[ "$days" == "0" ]]; then
+            print_info "Dibatalkan."
+            wait_for_esc
+            return
+        fi
         if [[ -z "$days" ]]; then days=30; break; fi
         validate_days "$days" && break
     done
@@ -435,8 +455,13 @@ create_trial_account() {
     # Trial duration (default 1 day)
     local days
     while true; do
-        echo -en "    ${FG_DIM}Durasi trial${RESET} ${FG_SUBTLE}(hari) [Enter = 1]:${RESET} "
+        echo -en "    ${FG_DIM}Durasi trial${RESET} ${FG_SUBTLE}(hari) [Enter = 1, 0 = batal]:${RESET} "
         read -r days
+        if [[ "$days" == "0" ]]; then
+            print_info "Dibatalkan."
+            wait_for_esc
+            return
+        fi
         if [[ -z "$days" ]]; then days=1; break; fi
         validate_days "$days" && break
     done

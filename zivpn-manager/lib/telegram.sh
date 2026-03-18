@@ -54,9 +54,15 @@ config_telegram() {
         return
     fi
 
-    echo -en "    ${FG_DIM}Chat ID baru:${RESET} "
+    echo -en "    ${FG_DIM}Chat ID baru${RESET} ${FG_SUBTLE}(0 = batal):${RESET} "
     read -r new_chat_id
     new_chat_id=$(echo "$new_chat_id" | tr -d ' ')
+
+    if [[ "$new_chat_id" == "0" ]]; then
+        print_info "Dibatalkan."
+        wait_for_esc
+        return
+    fi
 
     if [[ -z "$new_chat_id" ]]; then
         print_error "Chat ID tidak boleh kosong jika Token diisi."

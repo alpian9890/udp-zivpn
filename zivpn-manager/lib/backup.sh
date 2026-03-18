@@ -135,8 +135,13 @@ restore_data() {
             wait_for_esc
             return
         elif [[ "$choice" == "p" || "$choice" == "P" ]]; then
-            echo -en "    ${FG_DIM}Path file backup (.tar.gz):${RESET} "
+            echo -en "    ${FG_DIM}Path file backup (.tar.gz, 0 = batal):${RESET} "
             read -r backup_path
+            if [[ "$backup_path" == "0" ]]; then
+                print_info "Dibatalkan."
+                wait_for_esc
+                return
+            fi
         elif [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#backups[@]} )); then
             backup_path="${backups[$((choice - 1))]}"
         else
