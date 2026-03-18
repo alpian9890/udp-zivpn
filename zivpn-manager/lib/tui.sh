@@ -206,10 +206,12 @@ tui_menu() {
 
         case "$key" in
             UP)
-                ((sel_idx > 0)) && { ((sel_idx--)); current=${selectable[$sel_idx]}; }
+                sel_idx=$(( (sel_idx - 1 + sel_total) % sel_total ))
+                current=${selectable[$sel_idx]}
                 ;;
             DOWN)
-                ((sel_idx < sel_total - 1)) && { ((sel_idx++)); current=${selectable[$sel_idx]}; }
+                sel_idx=$(( (sel_idx + 1) % sel_total ))
+                current=${selectable[$sel_idx]}
                 ;;
             HOME)
                 sel_idx=0
