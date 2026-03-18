@@ -79,11 +79,13 @@ config_telegram() {
     echo ""
     print_info "Mengirim pesan test ke Telegram..."
     
-    local test_msg="✅ *ZiVPN Manager*%0AKonfigurasi Telegram berhasil dihubungkan ke server!"
+    local test_msg
+    printf -v test_msg "✅ *ZiVPN Manager*\nKonfigurasi Telegram berhasil dihubungkan ke server!"
+    
     local response
     response=$(curl -s -X POST "https://api.telegram.org/bot${new_token}/sendMessage" \
         -d chat_id="${new_chat_id}" \
-        -d text="${test_msg}" \
+        --data-urlencode text="${test_msg}" \
         -d parse_mode="Markdown")
 
     if echo "$response" | grep -q '"ok":true'; then
@@ -111,7 +113,9 @@ send_backup_to_telegram() {
     print_info "Mengirim file backup ke Telegram..."
     local hostname
     hostname=$(get_server_host)
-    local caption="📦 *ZiVPN Backup* - ${hostname}%0A%0ABackup file: \`$(basename "$file_path")\`"
+    
+    local caption
+    printf -v caption "📦 *ZiVPN Backup* - %s\n\nBackup file: \`%s\`" "$hostname" "$(basename "$file_path")"
 
     local response
     response=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendDocument" \
