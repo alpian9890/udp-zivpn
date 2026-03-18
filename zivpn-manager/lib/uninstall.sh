@@ -48,7 +48,7 @@ uninstall_zivpn() {
     if command -v tui_confirm &>/dev/null 2>&1 && [[ -t 0 ]]; then
         tui_confirm "Lanjutkan proses uninstall?" || {
             print_info "Uninstall dibatalkan."
-            press_enter
+            wait_for_esc
             return 0
         }
         echo ""
@@ -80,13 +80,13 @@ uninstall_zivpn() {
             echo ""
             _do_pre_uninstall_backup || {
                 print_error "Backup gagal. Uninstall dibatalkan."
-                press_enter
+                wait_for_esc
                 return 1
             }
             echo ""
             confirm "  Lanjutkan uninstall sekarang?" || {
                 print_warn "Uninstall dibatalkan."
-                press_enter
+                wait_for_esc
                 return 0
             }
             ;;
@@ -94,13 +94,13 @@ uninstall_zivpn() {
             echo ""
             confirm "  ${RED}YAKIN uninstall TANPA backup?${RESET}" || {
                 print_warn "Uninstall dibatalkan."
-                press_enter
+                wait_for_esc
                 return 0
             }
             ;;
         3|*)
             print_info "Uninstall dibatalkan."
-            press_enter
+            wait_for_esc
             return 0
             ;;
     esac

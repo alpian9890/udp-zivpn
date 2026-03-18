@@ -49,10 +49,10 @@ action_restart() {
     echo ""
     section_title "Restart ZiVPN Service"
     echo ""
-    confirm "  Restart service zivpn sekarang?" || { press_enter; return; }
+    confirm "  Restart service zivpn sekarang?" || { wait_for_esc; return; }
     echo ""
     restart_service
-    press_enter
+    wait_for_esc
 }
 
 action_status() {
@@ -60,7 +60,7 @@ action_status() {
     echo ""
     section_title "Status ZiVPN Service"
     service_status
-    press_enter
+    wait_for_esc
 }
 
 action_info() {
@@ -100,7 +100,7 @@ action_info() {
     fi
     echo -e "    ${FG_DIM}Service Status:${RESET}  ${svc_color}${svc_label}${RESET}"
     echo ""
-    press_enter
+    wait_for_esc
 }
 
 action_domain() {
@@ -126,13 +126,13 @@ action_domain() {
     new_domain=$(echo "$new_domain" | tr -d ' ')
 
     if [[ -n "$new_domain" ]] && ! validate_domain "$new_domain"; then
-        press_enter
+        wait_for_esc
         return
     fi
 
     if [[ -z "$new_domain" ]]; then
         if [[ -n "$current" ]]; then
-            confirm "  Hapus custom domain '${current}'?" || { print_warn "Dibatalkan."; press_enter; return; }
+            confirm "  Hapus custom domain '${current}'?" || { print_warn "Dibatalkan."; wait_for_esc; return; }
             set_custom_domain ""
             sed -i '/^CUSTOM_DOMAIN=/d' "$MANAGER_CONFIG" 2>/dev/null
             print_success "Custom domain dihapus. Header akan menampilkan IP publik."
@@ -144,10 +144,10 @@ action_domain() {
         print_success "Custom domain disimpan: ${CYAN}${new_domain}${RESET}"
         echo -e "    ${FG_SUBTLE}Domain ini akan ditampilkan di header dan info akun.${RESET}"
     fi
-    press_enter
+    wait_for_esc
 }
 
-action_help() { show_usage; press_enter; }
+action_help() { show_usage; wait_for_esc; }
 action_update() { check_update; }
 action_uninstall() { uninstall_zivpn; }
 

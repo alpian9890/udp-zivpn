@@ -45,6 +45,10 @@ read_key() {
     IFS= read -rsn1 key 2>/dev/null
 
     case "$key" in
+        $'\x03')  # Ctrl+C
+            _tui_cleanup
+            exit 130
+            ;;
         $'\x1b')  # Escape sequence
             local seq seq2
             IFS= read -rsn1 -t 0.05 seq 2>/dev/null

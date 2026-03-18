@@ -42,7 +42,7 @@ list_accounts() {
 
     if [[ "$total" -eq 0 ]]; then
         print_info "Belum ada akun. Tambahkan akun baru dari menu."
-        press_enter
+        wait_for_esc
         return
     fi
 
@@ -110,7 +110,7 @@ list_accounts() {
     echo ""
     echo -e "    Total: ${WHITE}${total}${RESET}  ${FG_SUBTLE}│${RESET}  $(badge "Aktif: ${active}" "$GREEN")  ${FG_SUBTLE}│${RESET}  $(badge "Trial: ${trial_count}" "$YELLOW")  ${FG_SUBTLE}│${RESET}  $(badge "Expired: ${expired_count}" "$RED")"
     echo ""
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ add_account() {
     divider "subtle"
     echo ""
 
-    confirm "  Simpan akun ini?" || { print_warn "Dibatalkan."; press_enter; return; }
+    confirm "  Simpan akun ini?" || { print_warn "Dibatalkan."; wait_for_esc; return; }
 
     # Write to accounts.json
     local new_entry
@@ -206,7 +206,7 @@ add_account() {
     box_line "${FG_DIM}Dibuat   :${RESET}  ${FG_SUBTLE}$(format_date "$created_at")${RESET}"
     box_line "${FG_DIM}Expired  :${RESET}  ${YELLOW}$(format_date "$expired_at")${RESET}"
     box_bottom
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -222,28 +222,36 @@ delete_account() {
     total=$(jq '.accounts | length' "$ACCOUNTS_FILE")
     if [[ "$total" -eq 0 ]]; then
         print_info "Belum ada akun."
-        press_enter
+        wait_for_esc
         return
     fi
 
-    # Show list first
-    list_accounts_inline
+    local account_items=()
+    while IFS= read -r acc; do
+        local u s ea
+        u=$(echo "$acc" | jq -r '.username')
+        s=$(echo "$acc" | jq -r '.status')
+        ea=$(echo "$acc" | jq -r '.expired_at')
+        account_items+=("${u}  (${s}, $(format_date "$ea"))|${u}")
+    done < <(jq -c '.accounts[]' "$ACCOUNTS_FILE")
 
     local username
-    echo -en "    ${FG_DIM}Username yang akan dihapus:${RESET} "
-    read -r username
-    username=$(echo "$username" | tr -d ' ')
-
-    if ! username_exists "$username"; then
-        print_error "Akun '$username' tidak ditemukan"
-        press_enter
+    username=$(tui_menu "Pilih Akun yang akan Dihapus" account_items)
+    if [[ "$username" == "__exit__" || -z "$username" ]]; then
         return
     fi
+
+    # Re-print header because TUI cleared it
+    print_header
+    echo ""
+    section_title "Hapus Akun"
+    echo ""
+    echo -e "    ${FG_DIM}Akun terpilih:${RESET} ${WHITE}${username}${RESET}"
 
     echo ""
     confirm "  Hapus akun '${username}'? Aksi ini tidak bisa dibatalkan." || {
         print_warn "Dibatalkan."
-        press_enter
+        wait_for_esc
         return
     }
 
@@ -252,7 +260,7 @@ delete_account() {
     sync_config
 
     print_success "Akun '${username}' berhasil dihapus!"
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -264,18 +272,34 @@ set_expired_account() {
     section_title "Set Tanggal Expired Akun"
     echo ""
 
-    list_accounts_inline
-
-    local username
-    echo -en "    ${FG_DIM}Username:${RESET} "
-    read -r username
-    username=$(echo "$username" | tr -d ' ')
-
-    if ! username_exists "$username"; then
-        print_error "Akun '$username' tidak ditemukan"
-        press_enter
+    local total
+    total=$(jq '.accounts | length' "$ACCOUNTS_FILE")
+    if [[ "$total" -eq 0 ]]; then
+        print_info "Belum ada akun."
+        wait_for_esc
         return
     fi
+
+    local account_items=()
+    while IFS= read -r acc; do
+        local u s ea
+        u=$(echo "$acc" | jq -r '.username')
+        s=$(echo "$acc" | jq -r '.status')
+        ea=$(echo "$acc" | jq -r '.expired_at')
+        account_items+=("${u}  (${s}, $(format_date "$ea"))|${u}")
+    done < <(jq -c '.accounts[]' "$ACCOUNTS_FILE")
+
+    local username
+    username=$(tui_menu "Pilih Akun (Set Expired)" account_items)
+    if [[ "$username" == "__exit__" || -z "$username" ]]; then
+        return
+    fi
+
+    print_header
+    echo ""
+    section_title "Set Tanggal Expired Akun"
+    echo ""
+    echo -e "    ${FG_DIM}Akun terpilih:${RESET} ${WHITE}${username}${RESET}"
 
     local datestr
     while true; do
@@ -293,7 +317,7 @@ set_expired_account() {
     sync_config
 
     print_success "Expired akun '${username}' diset ke $(format_date "$expired_at")"
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -305,18 +329,34 @@ extend_account() {
     section_title "Perpanjang Akun"
     echo ""
 
-    list_accounts_inline
-
-    local username
-    echo -en "    ${FG_DIM}Username:${RESET} "
-    read -r username
-    username=$(echo "$username" | tr -d ' ')
-
-    if ! username_exists "$username"; then
-        print_error "Akun '$username' tidak ditemukan"
-        press_enter
+    local total
+    total=$(jq '.accounts | length' "$ACCOUNTS_FILE")
+    if [[ "$total" -eq 0 ]]; then
+        print_info "Belum ada akun."
+        wait_for_esc
         return
     fi
+
+    local account_items=()
+    while IFS= read -r acc; do
+        local u s ea
+        u=$(echo "$acc" | jq -r '.username')
+        s=$(echo "$acc" | jq -r '.status')
+        ea=$(echo "$acc" | jq -r '.expired_at')
+        account_items+=("${u}  (${s}, $(format_date "$ea"))|${u}")
+    done < <(jq -c '.accounts[]' "$ACCOUNTS_FILE")
+
+    local username
+    username=$(tui_menu "Pilih Akun (Perpanjang)" account_items)
+    if [[ "$username" == "__exit__" || -z "$username" ]]; then
+        return
+    fi
+
+    print_header
+    echo ""
+    section_title "Perpanjang Akun"
+    echo ""
+    echo -e "    ${FG_DIM}Akun terpilih:${RESET} ${WHITE}${username}${RESET}"
 
     local days
     while true; do
@@ -348,7 +388,7 @@ extend_account() {
     sync_config
 
     print_success "Akun '${username}' diperpanjang hingga $(format_date "$new_exp")"
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -398,7 +438,7 @@ create_trial_account() {
     divider "subtle"
     echo ""
 
-    confirm "  Buat akun trial ini?" || { print_warn "Dibatalkan."; press_enter; return; }
+    confirm "  Buat akun trial ini?" || { print_warn "Dibatalkan."; wait_for_esc; return; }
 
     local new_entry
     new_entry=$(jq -n \
@@ -428,7 +468,7 @@ create_trial_account() {
     box_line "${FG_DIM}Dibuat   :${RESET}  ${FG_SUBTLE}$(format_date "$created_at")${RESET}"
     box_line "${FG_DIM}Expired  :${RESET}  ${YELLOW}$(format_date "$expired_at")${RESET} (${days} hari)"
     box_bottom
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------

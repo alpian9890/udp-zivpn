@@ -269,10 +269,17 @@ confirm() {
 }
 
 # --- Press any key -----------------------------------------------------------
-press_enter() {
+wait_for_esc() {
     echo ""
-    echo -en "  ${FG_SUBTLE}─── Tekan ${RESET}${FG_DIM}[Enter]${RESET}${FG_SUBTLE} untuk kembali ke menu ───${RESET}"
-    read -r
+    echo -en "  ${FG_SUBTLE}─── Tekan ${RESET}${FG_DIM}[Esc]${RESET}${FG_SUBTLE} untuk kembali ───${RESET}"
+    while true; do
+        local key
+        key=$(read_key 2>/dev/null)
+        if [[ "$key" == "ESC" || "$key" == "ENTER" ]]; then
+            break
+        fi
+    done
+    echo ""
 }
 
 # --- Check dependencies ------------------------------------------------------

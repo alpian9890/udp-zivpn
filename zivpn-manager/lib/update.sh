@@ -81,7 +81,7 @@ check_update() {
     if [[ -z "$remote_ver" ]]; then
         print_error "Gagal mengecek update. Pastikan server terhubung ke internet."
         echo -e "    ${FG_SUBTLE}Repository: github.com/${GITHUB_REPO}${RESET}"
-        press_enter
+        wait_for_esc
         return 1
     fi
 
@@ -113,7 +113,7 @@ check_update() {
         print_success "Anda sudah menggunakan versi terbaru (v${local_ver})"
     fi
 
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------

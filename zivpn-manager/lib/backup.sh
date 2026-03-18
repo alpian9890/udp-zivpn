@@ -36,7 +36,7 @@ backup_data() {
 
     if [[ ${#files_to_backup[@]} -eq 0 ]]; then
         print_error "Tidak ada file untuk di-backup."
-        press_enter
+        wait_for_esc
         return
     fi
 
@@ -56,7 +56,7 @@ backup_data() {
     timestamp=$(date +"%Y%m%d_%H%M%S")
     local backup_file="${BACKUP_DIR}/zivpn-backup_${timestamp}.tar.gz"
 
-    confirm "  Buat backup sekarang?" || { print_warn "Dibatalkan."; press_enter; return; }
+    confirm "  Buat backup sekarang?" || { print_warn "Dibatalkan."; wait_for_esc; return; }
 
     echo ""
 
@@ -81,7 +81,7 @@ backup_data() {
         print_error "Gagal membuat backup."
     fi
 
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ restore_data() {
 
         if [[ "$choice" == "0" ]]; then
             print_info "Dibatalkan."
-            press_enter
+            wait_for_esc
             return
         elif [[ "$choice" == "p" || "$choice" == "P" ]]; then
             echo -en "    ${FG_DIM}Path file backup (.tar.gz):${RESET} "
@@ -134,7 +134,7 @@ restore_data() {
             backup_path="${backups[$((choice - 1))]}"
         else
             print_error "Pilihan tidak valid."
-            press_enter
+            wait_for_esc
             return
         fi
     else
@@ -148,20 +148,20 @@ restore_data() {
 
     if [[ -z "$backup_path" ]]; then
         print_warn "Dibatalkan."
-        press_enter
+        wait_for_esc
         return
     fi
 
     if [[ ! -f "$backup_path" ]]; then
         print_error "File tidak ditemukan: $backup_path"
-        press_enter
+        wait_for_esc
         return
     fi
 
     # Validate it's a valid tar.gz
     if ! tar -tzf "$backup_path" &>/dev/null; then
         print_error "File bukan archive tar.gz yang valid."
-        press_enter
+        wait_for_esc
         return
     fi
 
@@ -189,7 +189,7 @@ restore_data() {
 
     echo -e "    ${RED}${BOLD}⚠  PERINGATAN: Restore akan menimpa data saat ini!${RESET}"
     echo ""
-    confirm "  Lanjutkan restore dari backup ini?" || { print_warn "Dibatalkan."; press_enter; return; }
+    confirm "  Lanjutkan restore dari backup ini?" || { print_warn "Dibatalkan."; wait_for_esc; return; }
 
     echo ""
 
@@ -235,7 +235,7 @@ restore_data() {
         fi
     fi
 
-    press_enter
+    wait_for_esc
 }
 
 # ---------------------------------------------------------------------------
@@ -257,7 +257,7 @@ list_backups() {
     if [[ ${#backups[@]} -eq 0 ]]; then
         print_info "Belum ada file backup."
         echo -e "    ${FG_SUBTLE}Buat backup dari menu utama.${RESET}"
-        press_enter
+        wait_for_esc
         return
     fi
 
@@ -280,5 +280,5 @@ list_backups() {
     echo ""
     echo -e "    ${FG_SUBTLE}Lokasi backup: ${BACKUP_DIR}${RESET}"
     echo ""
-    press_enter
+    wait_for_esc
 }
