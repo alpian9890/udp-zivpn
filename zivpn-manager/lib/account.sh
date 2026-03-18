@@ -122,12 +122,21 @@ add_account() {
     section_title "Tambah Akun Baru"
     echo ""
 
+    flush_stdin
+
     # Username
     local username
     while true; do
-        echo -en "    ${FG_DIM}Username${RESET} ${FG_SUBTLE}(3-32 karakter):${RESET} "
+        echo -en "    ${FG_DIM}Username${RESET} ${FG_SUBTLE}(3-32 karakter, kosongkan/0 untuk batal):${RESET} "
         read -r username
         username=$(echo "$username" | tr -d ' ')
+        
+        if [[ -z "$username" || "$username" == "0" ]]; then
+            print_info "Dibatalkan."
+            wait_for_esc
+            return
+        fi
+
         validate_username "$username" || continue
         if username_exists "$username"; then
             print_error "Username '$username' sudah digunakan"
@@ -400,12 +409,21 @@ create_trial_account() {
     section_title "Buat Akun Trial"
     echo ""
 
+    flush_stdin
+
     # Username
     local username
     while true; do
-        echo -en "    ${FG_DIM}Username untuk trial:${RESET} "
+        echo -en "    ${FG_DIM}Username untuk trial${RESET} ${FG_SUBTLE}(kosongkan/0 untuk batal):${RESET} "
         read -r username
         username=$(echo "$username" | tr -d ' ')
+
+        if [[ -z "$username" || "$username" == "0" ]]; then
+            print_info "Dibatalkan."
+            wait_for_esc
+            return
+        fi
+
         validate_username "$username" || continue
         if username_exists "$username"; then
             print_error "Username '$username' sudah digunakan"

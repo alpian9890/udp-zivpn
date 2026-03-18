@@ -120,11 +120,21 @@ action_domain() {
     echo ""
     echo -e "    ${FG_SUBTLE}Masukkan domain yang sudah di-pointing ke IP server ini.${RESET}"
     echo -e "    ${FG_SUBTLE}Contoh: vpn.namadomain.com${RESET}"
-    echo -e "    ${FG_SUBTLE}Biarkan kosong + Enter untuk menghapus domain.${RESET}"
+    echo -e "    ${FG_SUBTLE}Ketik '0' untuk membatalkan.${RESET}"
+    echo -e "    ${FG_SUBTLE}Biarkan kosong + Enter untuk menghapus domain saat ini.${RESET}"
     echo ""
+
+    flush_stdin
+
     echo -en "    ${FG_DIM}Domain baru:${RESET} "
     read -r new_domain
     new_domain=$(echo "$new_domain" | tr -d ' ')
+
+    if [[ "$new_domain" == "0" ]]; then
+        print_info "Dibatalkan."
+        wait_for_esc
+        return
+    fi
 
     if [[ -n "$new_domain" ]] && ! validate_domain "$new_domain"; then
         wait_for_esc

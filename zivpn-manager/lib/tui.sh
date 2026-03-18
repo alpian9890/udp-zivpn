@@ -68,7 +68,11 @@ read_key() {
             # Flush any remaining escape sequence bytes
             while IFS= read -rsn1 -t 0.01 _ 2>/dev/null; do :; done
             ;;
-        '')       echo "ENTER"     ;;
+        '')
+            # Flush any leftover \r or \n from terminal (e.g. Windows SSH clients)
+            while IFS= read -rsn1 -t 0.01 _ 2>/dev/null; do :; done
+            echo "ENTER"
+            ;;
         $'\t')    echo "TAB"       ;;
         $'\x7f')  echo "BACKSPACE" ;;
         $'\x08')  echo "BACKSPACE" ;;

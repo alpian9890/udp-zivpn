@@ -25,14 +25,22 @@ config_telegram() {
         echo -e "    ${FG_DIM}Status      :${RESET}  ${FG_SUBTLE}Belum dikonfigurasi${RESET}"
     fi
 
-    echo ""
+    echo -e "    ${FG_SUBTLE}Ketik '0' untuk membatalkan tanpa mengubah apa pun.${RESET}"
     echo -e "    ${FG_SUBTLE}Kosongkan input dan tekan Enter untuk menghapus konfigurasi.${RESET}"
     echo ""
+
+    flush_stdin
 
     local new_token new_chat_id
     echo -en "    ${FG_DIM}Bot Token baru:${RESET} "
     read -r new_token
     new_token=$(echo "$new_token" | tr -d ' ')
+
+    if [[ "$new_token" == "0" ]]; then
+        print_info "Dibatalkan."
+        wait_for_esc
+        return
+    fi
 
     if [[ -z "$new_token" ]]; then
         if [[ -f "$TELEGRAM_CONFIG" ]]; then

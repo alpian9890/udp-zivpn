@@ -269,6 +269,10 @@ confirm() {
 }
 
 # --- Press any key -----------------------------------------------------------
+flush_stdin() {
+    while read -t 0.01 -n 1000 -d '' _ 2>/dev/null; do :; done
+}
+
 wait_for_esc() {
     echo ""
     echo -en "  ${FG_SUBTLE}─── Tekan ${RESET}${FG_DIM}[Esc]${RESET}${FG_SUBTLE} untuk kembali ───${RESET}"
