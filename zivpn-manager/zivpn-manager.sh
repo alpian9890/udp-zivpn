@@ -158,7 +158,7 @@ action_domain() {
     wait_for_esc
 }
 
-action_telegram() { config_telegram; }
+action_telegram() { menu_telegram; }
 action_help() { show_usage; wait_for_esc; }
 action_update() { check_update; }
 action_uninstall() { uninstall_zivpn; }
