@@ -21,6 +21,7 @@ UPDATE_FILES=(
     "zivpn-manager/lib/backup.sh"
     "zivpn-manager/lib/help.sh"
     "zivpn-manager/lib/update.sh"
+    "zivpn-manager/lib/telegram.sh"
     "zivpn-manager/lib/tui.sh"
     "zivpn-manager/lib/uninstall.sh"
 )
@@ -188,6 +189,7 @@ do_update() {
     cp "$tmp_dir/lib/backup.sh"      "$install_dir/lib/backup.sh"
     cp "$tmp_dir/lib/help.sh"        "$install_dir/lib/help.sh"
     cp "$tmp_dir/lib/update.sh"      "$install_dir/lib/update.sh"
+    cp "$tmp_dir/lib/telegram.sh"    "$install_dir/lib/telegram.sh"
     cp "$tmp_dir/lib/tui.sh"         "$install_dir/lib/tui.sh"
     cp "$tmp_dir/lib/uninstall.sh"   "$install_dir/lib/uninstall.sh"
 
