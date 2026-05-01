@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { 
   Users, Activity, Server, Clock, 
-  Plus, Trash2, CalendarClock, RefreshCw, AlertCircle, Search, Terminal, Globe, Shield, X, Eye, EyeOff, BarChart3
+  Plus, Trash2, CalendarClock, RefreshCw, AlertCircle, Search, Terminal, Globe, Shield, X, Eye, EyeOff, BarChart3, Settings, Send
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -60,6 +60,13 @@ function App() {
   const [showLogs, setShowLogs] = useState(false);
   const [logs, setLogs] = useState("");
 
+  // Settings State
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [botToken, setBotToken] = useState("");
+  const [chatId, setChatId] = useState("");
+  const [cronHour, setCronHour] = useState("");
+  const [isBackupLoading, setIsBackupLoading] = useState(false);
+
   // Add User Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -114,6 +121,46 @@ function App() {
       setShowLogs(true);
     } catch (err: any) {
       alert("Failed to fetch logs: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/settings/telegram`);
+      setBotToken(res.data.botToken || "");
+      setChatId(res.data.chatId || "");
+      setCronHour(res.data.cronHour || "");
+      setShowSettingsModal(true);
+    } catch (err: any) {
+      alert("Failed to fetch settings: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const saveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API_URL}/settings/telegram`, {
+        botToken,
+        chatId,
+        cronHour
+      });
+      alert("Settings saved successfully.");
+      setShowSettingsModal(false);
+    } catch (err: any) {
+      alert("Failed to save settings: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleManualBackup = async () => {
+    if (!window.confirm("Create and send backup to Telegram now?")) return;
+    try {
+      setIsBackupLoading(true);
+      const res = await axios.post(`${API_URL}/backup/telegram`);
+      alert(res.data.message);
+    } catch (err: any) {
+      alert("Error: " + (err.response?.data?.error || err.message));
+    } finally {
+      setIsBackupLoading(false);
     }
   };
 
@@ -242,6 +289,14 @@ function App() {
             <p className="text-slate-400 text-sm mt-1">Manage and monitor your Zivpn server</p>
           </div>
           <div className="flex flex-wrap gap-3">
+            <button onClick={handleManualBackup} disabled={isBackupLoading} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-700 disabled:opacity-50">
+              <Send size={18} />
+              {isBackupLoading ? "Sending..." : "Backup to Telegram"}
+            </button>
+            <button onClick={fetchSettings} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-700">
+              <Settings size={18} />
+              Settings
+            </button>
             <button onClick={fetchLogs} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-700">
               <Terminal size={18} />
               Service Logs
@@ -428,6 +483,72 @@ function App() {
 
       </div>
 
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-slate-800">
+              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Settings className="text-slate-400" />
+                Settings & Telegram Backup
+              </h3>
+              <button onClick={() => setShowSettingsModal(false)} className="text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={saveSettings} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Telegram Bot Token</label>
+                <input 
+                  type="text" 
+                  value={botToken}
+                  onChange={(e) => setBotToken(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. 1234567890:ABCdefGhI..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Telegram Chat ID</label>
+                <input 
+                  type="text" 
+                  value={chatId}
+                  onChange={(e) => setChatId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. 123456789"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Auto Backup Hour (0-23)</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  max="23"
+                  value={cronHour}
+                  onChange={(e) => setCronHour(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                  placeholder="Leave empty to disable"
+                />
+              </div>
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+                >
+                  Save Settings
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -446,7 +567,7 @@ function App() {
                   required
                   value={newUsername}
                   onChange={(e) => setNewUsername(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
                   placeholder="e.g. john_doe"
                 />
               </div>
@@ -456,7 +577,7 @@ function App() {
                   type="text" 
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
                   placeholder="Leave empty for random password"
                 />
               </div>
@@ -468,7 +589,7 @@ function App() {
                   required
                   value={newDays}
                   onChange={(e) => setNewDays(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+                  className="w-full bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div className="pt-4 flex justify-end gap-3">

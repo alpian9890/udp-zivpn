@@ -17,6 +17,8 @@ app.use(express.static(path.join(__dirname, "../../client/dist")));
 const PORT = Number(process.env.PORT) || 3000;
 const ACCOUNTS_FILE = process.env.ACCOUNTS_FILE || "/etc/zivpn/accounts.json";
 const CONFIG_FILE = process.env.CONFIG_FILE || "/etc/zivpn/config.json";
+const TELEGRAM_CONFIG = "/etc/zivpn/telegram.conf";
+const CRON_FILE = "/etc/cron.d/zivpn-autobackup";
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 // --- Helpers ---
@@ -249,6 +251,151 @@ app.post("/api/service/restart", async (req, res) => {
     }
     await execAsync("systemctl restart zivpn.service");
     res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/settings/telegram", async (req, res) => {
+  try {
+    let token = "";
+    let chatId = "";
+    let cronHour = "";
+    
+    try {
+      const confStr = await fs.readFile(TELEGRAM_CONFIG, "utf-8");
+      const tokenMatch = confStr.match(/BOT_TOKEN="([^"]+)"/);
+      const chatMatch = confStr.match(/CHAT_ID="([^"]+)"/);
+      if (tokenMatch) token = tokenMatch[1];
+      if (chatMatch) chatId = chatMatch[1];
+    } catch (e) {}
+    
+    try {
+      const cronStr = await fs.readFile(CRON_FILE, "utf-8");
+      const cronMatch = cronStr.match(/^0 ([0-9]+) \* \* \*/);
+      if (cronMatch) cronHour = cronMatch[1];
+    } catch (e) {}
+
+    res.json({ botToken: token, chatId, cronHour });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/settings/telegram", async (req, res) => {
+  try {
+    const { botToken, chatId, cronHour } = req.body;
+    
+    if (botToken && chatId) {
+      await fs.writeFile(TELEGRAM_CONFIG, `BOT_TOKEN="${botToken}"\nCHAT_ID="${chatId}"\n`);
+      await execAsync(`chmod 600 ${TELEGRAM_CONFIG}`);
+    } else {
+      await fs.unlink(TELEGRAM_CONFIG).catch(() => {});
+    }
+
+    if (cronHour !== undefined && cronHour !== "") {
+      const hour = parseInt(cronHour);
+      if (hour >= 0 && hour <= 23) {
+        const scriptPath = "/etc/zivpn/auto_backup.sh";
+        const scriptContent = `#!/bin/bash
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+MANAGER_DIR="/root/project-tunneling-zivpn/udp-zivpn/zivpn-manager" # fallback
+[[ -d "/etc/zivpn/zivpn-manager" ]] && MANAGER_DIR="/etc/zivpn/zivpn-manager"
+source "$MANAGER_DIR/lib/utils.sh"
+source "$MANAGER_DIR/lib/telegram.sh"
+BACKUP_DIR="/etc/zivpn/backups"
+mkdir -p "$BACKUP_DIR"
+timestamp=$(date +"%Y%m%d_%H%M%S")
+backup_file="\${BACKUP_DIR}/zivpn-backup_auto_\${timestamp}.tar.gz"
+files=("/etc/zivpn/accounts.json" "/etc/zivpn/config.json" "/etc/zivpn/manager.conf" "/etc/zivpn/zivpn.crt" "/etc/zivpn/zivpn.key")
+to_backup=()
+for f in "\${files[@]}"; do [[ -f "$f" ]] && to_backup+=("$f"); done
+[[ \${#to_backup[@]} -eq 0 ]] && exit 0
+tar -czf "$backup_file" -C / "\${to_backup[@]/#\\//}" 2>/dev/null
+chmod 600 "$backup_file"
+send_backup_to_telegram "$backup_file" >/dev/null 2>&1
+find "$BACKUP_DIR" -name "zivpn-backup_auto_*.tar.gz" -type f | sort -r | tail -n +6 | xargs -r rm -f
+`;
+        await fs.writeFile(scriptPath, scriptContent);
+        await execAsync(`chmod +x ${scriptPath}`);
+        await fs.writeFile(CRON_FILE, `0 ${hour} * * * root ${scriptPath}\n`);
+        await execAsync(`chmod 644 ${CRON_FILE}`);
+        await execAsync("systemctl reload cron || systemctl reload crond").catch(() => {});
+      }
+    } else {
+      await fs.unlink(CRON_FILE).catch(() => {});
+      await execAsync("systemctl reload cron || systemctl reload crond").catch(() => {});
+    }
+    
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/backup/telegram", async (req, res) => {
+  try {
+    let confStr;
+    try {
+      confStr = await fs.readFile(TELEGRAM_CONFIG, "utf-8");
+    } catch(e) {
+      return res.status(400).json({ error: "Telegram Bot Token and Chat ID not configured." });
+    }
+    const tokenMatch = confStr.match(/BOT_TOKEN="([^"]+)"/);
+    const chatMatch = confStr.match(/CHAT_ID="([^"]+)"/);
+    if (!tokenMatch || !chatMatch) {
+      return res.status(400).json({ error: "Telegram Bot Token and Chat ID not configured." });
+    }
+    
+    const botToken = tokenMatch[1];
+    const chatId = chatMatch[1];
+    
+    await execAsync("mkdir -p /etc/zivpn/backups");
+    
+    const d = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const timestamp = `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const backupFile = `/etc/zivpn/backups/zivpn-backup_${timestamp}.tar.gz`;
+    
+    const filesToBackup = [
+      "/etc/zivpn/accounts.json",
+      "/etc/zivpn/config.json",
+      "/etc/zivpn/manager.conf",
+      "/etc/zivpn/zivpn.crt",
+      "/etc/zivpn/zivpn.key"
+    ];
+    
+    const existingFiles = [];
+    for (const f of filesToBackup) {
+      try { await fs.access(f); existingFiles.push(f.replace(/^\//, "")); } catch(e) {}
+    }
+    
+    if (existingFiles.length === 0) return res.status(400).json({ error: "No files to backup" });
+    
+    await execAsync(`tar -czf ${backupFile} -C / ${existingFiles.join(' ')}`);
+    await execAsync(`chmod 600 ${backupFile}`);
+    
+    let hostname = "Unknown";
+    try {
+      const { stdout: domain } = await execAsync("source /etc/zivpn/manager.conf 2>/dev/null && echo $CUSTOM_DOMAIN").catch(() => ({stdout: ""}));
+      if (domain.trim()) {
+        hostname = domain.trim();
+      } else {
+        const { stdout: ipv4 } = await execAsync("curl -s4 -m 3 https://api.ipify.org || echo 'Unknown'");
+        hostname = ipv4.trim();
+      }
+    } catch(e) {}
+    
+    const caption = `📦 *ZiVPN Backup* - ${hostname}\n\nBackup file: \`zivpn-backup_${timestamp}.tar.gz\``;
+    
+    const { stdout } = await execAsync(`curl -s -X POST "https://api.telegram.org/bot${botToken}/sendDocument" -F chat_id="${chatId}" -F document=@"${backupFile}" -F caption="${caption}" -F parse_mode="Markdown"`);
+    
+    const tgRes = JSON.parse(stdout);
+    if (!tgRes.ok) {
+      return res.status(400).json({ error: "Failed to send backup to Telegram: " + tgRes.description });
+    }
+    
+    res.json({ success: true, message: "Backup successfully sent to Telegram." });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
