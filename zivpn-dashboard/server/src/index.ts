@@ -81,15 +81,21 @@ function generatePassword(length = 10) {
 app.get("/api/status", async (req, res) => {
   try {
     if (IS_DEV) {
-      return res.json({ status: "active", metrics: { cpu: "5%", ram: "20%", uptime: "10 days", ipv4: "192.168.1.1", ipv6: "::1" } });
+      return res.json({ status: "active", metrics: { cpu: "5% (1 Core)", ram: "20% (1.0G)", uptime: "10 days", ipv4: "192.168.1.1", ipv6: "::1" } });
     }
     
     // Attempt to parse actual metrics via bash wrappers or system tools
     const { stdout: systemctlStatus } = await execAsync("systemctl is-active zivpn.service").catch(e => ({ stdout: "stopped" }));
     const serviceActive = systemctlStatus.trim() === "active";
     
-    const { stdout: cpu } = await execAsync("top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'");
-    const { stdout: ram } = await execAsync("free -m | awk 'NR==2{printf \"%.2f%%\", $3*100/$2 }'");
+    const { stdout: cpuRaw } = await execAsync("top -bn1 | grep 'Cpu(s)' | awk '{print $2 + $4}'");
+    const { stdout: coresRaw } = await execAsync("nproc").catch(() => ({ stdout: "1" }));
+    const cpu = `${cpuRaw.trim()}% (${coresRaw.trim()} Core${parseInt(coresRaw.trim()) > 1 ? 's' : ''})`;
+    
+    const { stdout: ramPercentRaw } = await execAsync("free -m | awk 'NR==2{printf \"%.2f%%\", $3*100/$2 }'");
+    const { stdout: ramTotalRaw } = await execAsync("free -h | awk '/^Mem:/{print $2}'").catch(() => ({ stdout: "Unknown" }));
+    const ram = `${ramPercentRaw.trim()} (${ramTotalRaw.trim()})`;
+    
     const { stdout: uptime } = await execAsync("uptime -p");
     
     const { stdout: ipv4 } = await execAsync("curl -s4 -m 3 https://api.ipify.org || echo 'Unknown'");
@@ -98,8 +104,8 @@ app.get("/api/status", async (req, res) => {
     res.json({
       status: serviceActive ? "active" : "stopped",
       metrics: {
-        cpu: `${cpu.trim()}%`,
-        ram: ram.trim(),
+        cpu,
+        ram,
         uptime: uptime.trim(),
         ipv4: ipv4.trim(),
         ipv6: ipv6.trim()
@@ -119,6 +125,30 @@ app.get("/api/logs", async (req, res) => {
     res.json({ logs });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/bandwidth", async (req, res) => {
+  try {
+    if (IS_DEV) {
+      // Return mock data for 30 days
+      return res.json({
+        interfaces: [{
+          name: "eth0",
+          traffic: {
+            day: Array.from({length: 30}).map((_, i) => ({
+              date: { year: new Date().getFullYear(), month: new Date().getMonth() + 1, day: i + 1 },
+              rx: Math.random() * 1024 * 1024 * 1024 * 5,
+              tx: Math.random() * 1024 * 1024 * 1024 * 10
+            }))
+          }
+        }]
+      });
+    }
+    const { stdout } = await execAsync("vnstat -d --json");
+    res.json(JSON.parse(stdout));
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to fetch bandwidth data. Is vnstat installed?" });
   }
 });
 

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { 
   Users, Activity, Server, Clock, 
-  Plus, Trash2, CalendarClock, RefreshCw, AlertCircle, Search, Terminal, Globe, Shield, X, Eye, EyeOff
+  Plus, Trash2, CalendarClock, RefreshCw, AlertCircle, Search, Terminal, Globe, Shield, X, Eye, EyeOff, BarChart3
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // API Config
 const API_URL = "/api";
@@ -30,9 +31,25 @@ type User = {
   expired_at: string;
 };
 
+type BandwidthDay = {
+  date: { year: number; month: number; day: number };
+  rx: number;
+  tx: number;
+};
+
+type BandwidthResponse = {
+  interfaces?: {
+    name: string;
+    traffic: {
+      day: BandwidthDay[];
+    }
+  }[]
+};
+
 function App() {
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [bandwidthData, setBandwidthData] = useState<BandwidthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
@@ -52,6 +69,9 @@ function App() {
   // Password visibility state
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
+  // Bandwidth selection state
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+
   const togglePasswordVisibility = (username: string) => {
     setVisiblePasswords(prev => ({
       ...prev,
@@ -61,12 +81,24 @@ function App() {
 
   const fetchData = async () => {
     try {
-      const [statusRes, usersRes] = await Promise.all([
-        axios.get(`${API_URL}/status`),
-        axios.get(`${API_URL}/users`)
+      const [statusRes, usersRes, bwRes] = await Promise.all([
+        axios.get(`${API_URL}/status`).catch(() => ({ data: null })),
+        axios.get(`${API_URL}/users`).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/bandwidth`).catch(() => ({ data: null }))
       ]);
-      setStatus(statusRes.data);
-      setUsers(usersRes.data);
+      
+      if (statusRes.data) setStatus(statusRes.data);
+      if (usersRes.data) setUsers(usersRes.data);
+      
+      if (bwRes.data?.interfaces?.length > 0) {
+        setBandwidthData(bwRes.data);
+        const days = bwRes.data.interfaces[0].traffic?.day || [];
+        if (days.length > 0 && !selectedMonth) {
+           const lastDay = days[days.length - 1].date;
+           setSelectedMonth(`${lastDay.year}-${String(lastDay.month).padStart(2, '0')}`);
+        }
+      }
+      
       setError("");
     } catch (err: any) {
       setError(err.message || "Failed to fetch data. Is the backend running?");
@@ -154,6 +186,44 @@ function App() {
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Bandwidth Chart Logic
+  const { chartData, monthOptions, totalDownload, totalUpload } = useMemo(() => {
+    let data: any[] = [];
+    const monthsSet = new Set<string>();
+    let rxSum = 0;
+    let txSum = 0;
+
+    if (bandwidthData?.interfaces?.[0]?.traffic?.day) {
+      const allDays = bandwidthData.interfaces[0].traffic.day;
+      
+      allDays.forEach(d => {
+         const mStr = `${d.date.year}-${String(d.date.month).padStart(2, '0')}`;
+         monthsSet.add(mStr);
+      });
+
+      const filtered = allDays.filter(d => `${d.date.year}-${String(d.date.month).padStart(2, '0')}` === selectedMonth);
+      
+      data = filtered.map(d => {
+         const rxGB = d.rx / (1024 * 1024 * 1024);
+         const txGB = d.tx / (1024 * 1024 * 1024);
+         rxSum += d.rx;
+         txSum += d.tx;
+         return {
+           date: `${d.date.day} ${new Date(d.date.year, d.date.month - 1).toLocaleString('default', { month: 'short' })}`,
+           Download: parseFloat(rxGB.toFixed(2)),
+           Upload: parseFloat(txGB.toFixed(2)),
+         };
+      });
+    }
+
+    return {
+      chartData: data,
+      monthOptions: Array.from(monthsSet).sort().reverse(),
+      totalDownload: (rxSum / (1024 * 1024 * 1024)).toFixed(2),
+      totalUpload: (txSum / (1024 * 1024 * 1024)).toFixed(2)
+    };
+  }, [bandwidthData, selectedMonth]);
+
   if (loading && !status && !error) {
     return <div className="flex h-screen items-center justify-center text-white">Loading Dashboard...</div>;
   }
@@ -207,6 +277,49 @@ function App() {
           <MetricCard title="Uptime" value={status?.metrics?.uptime || "N/A"} icon={<Clock className="text-slate-400" />} />
         </div>
 
+        {/* Bandwidth Chart Section */}
+        {bandwidthData && chartData.length > 0 && (
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg p-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <BarChart3 className="text-blue-500" />
+                  Bandwidth Usage
+                </h2>
+                <p className="text-slate-400 text-sm mt-1">
+                  Monthly Total: <span className="text-green-400 font-medium">{totalDownload} GB</span> (DL) / <span className="text-blue-400 font-medium">{totalUpload} GB</span> (UL)
+                </p>
+              </div>
+              <select 
+                value={selectedMonth} 
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-slate-950 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
+              >
+                {monthOptions.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}GB`} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', color: '#f1f5f9' }}
+                    itemStyle={{ color: '#e2e8f0' }}
+                    cursor={{fill: '#1e293b'}}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '14px', paddingTop: '10px' }} />
+                  <Bar dataKey="Download" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                  <Bar dataKey="Upload" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
         {/* Users Section */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
           <div className="p-6 border-b border-slate-800 flex flex-col md:flex-row md:justify-between items-start md:items-center gap-4">
@@ -235,12 +348,12 @@ function App() {
             <table className="w-full text-left">
               <thead className="bg-slate-950 text-slate-400 text-sm uppercase">
                 <tr>
-                  <th className="px-6 py-4 font-medium">Username</th>
-                  <th className="px-6 py-4 font-medium">Password</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Expired At</th>
-                  <th className="px-6 py-4 font-medium">Remaining</th>
-                  <th className="px-6 py-4 font-medium text-right">Actions</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Username</th>
+                  <th className="px-6 py-4 font-medium w-48 whitespace-nowrap">Password</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Expired At</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Remaining</th>
+                  <th className="px-6 py-4 font-medium text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
@@ -256,12 +369,14 @@ function App() {
                     const isExpired = remaining <= 0;
                     return (
                       <tr key={user.username} className="hover:bg-slate-800/50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-white">{user.username}</td>
+                        <td className="px-6 py-4 font-medium text-white break-all min-w-[120px]">{user.username}</td>
                         <td className="px-6 py-4 font-mono text-sm text-slate-400 flex items-center gap-2">
-                          <span>{visiblePasswords[user.username] ? user.password : "••••••••"}</span>
+                          <span className="truncate w-24">
+                            {visiblePasswords[user.username] ? user.password : "••••••••"}
+                          </span>
                           <button 
                             onClick={() => togglePasswordVisibility(user.username)}
-                            className="text-slate-500 hover:text-slate-300 transition-colors"
+                            className="text-slate-500 hover:text-slate-300 transition-colors shrink-0"
                             title={visiblePasswords[user.username] ? "Hide password" : "Show password"}
                           >
                             {visiblePasswords[user.username] ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -276,12 +391,12 @@ function App() {
                             {isExpired ? "expired" : user.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-300">
+                        <td className="px-6 py-4 text-sm text-slate-300 whitespace-nowrap">
                           {new Date(user.expired_at).toLocaleDateString(undefined, { 
                             year: 'numeric', month: 'short', day: 'numeric' 
                           })}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`text-sm ${isExpired ? "text-red-400" : remaining <= 3 ? "text-yellow-400" : "text-green-400"}`}>
                             {isExpired ? "Expired" : `${remaining} days`}
                           </span>
