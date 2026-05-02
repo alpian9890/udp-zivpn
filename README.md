@@ -25,12 +25,35 @@ bash <(curl -fsSL https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/zi
 ### Uninstall
 
 ```bash
-sudo wget -O ziun.sh https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/uninstall.sh; sudo chmod +x ziun.sh; sudo ./ziun.sh
+sudo wget -O uninstall.sh https://raw.githubusercontent.com/alpian9890/udp-zivpn/main/uninstall.sh; sudo chmod +x uninstall.sh; sudo ./uninstall.sh
 ```
 
 ---
 
-## ZiVPN Manager
+## ZiVPN Dashboard (Web GUI)
+
+ZiVPN Dashboard adalah antarmuka berbasis web modern untuk memonitor dan mengelola server ZiVPN Anda. Dashboard ini otomatis terpasang saat Anda menjalankan installer `zi.sh` atau `zi2.sh`.
+
+### Fitur Dashboard
+- **Monitoring Real-time:** Status service, penggunaan CPU, RAM, dan Uptime server.
+- **Statistik Bandwidth:** Grafik pemakaian traffic harian dan bulanan (Download/Upload).
+- **Manajemen Akun:** Tambah, Hapus, Perpanjang akun dengan fitur Search dan Toggle Password.
+- **Service Control:** Tombol Start/Stop/Restart service secara langsung.
+- **Telegram Backup:** Konfigurasi Bot Telegram dan penjadwalan backup otomatis langsung dari web.
+- **Service Logs:** Melihat log traffic ZiVPN secara langsung.
+
+### Cara Mengakses Dashboard
+Demi keamanan, Dashboard hanya dapat diakses melalui **SSH Port Forwarding** (Port 3000):
+
+1. Jalankan perintah ini di terminal komputer lokal Anda:
+   ```bash
+   ssh -L 3000:localhost:3000 root@<IP_VPS>
+   ```
+2. Buka browser dan kunjungi: **http://localhost:3000**
+
+---
+
+## ZiVPN Manager (TUI/CLI)
 
 ZiVPN Manager adalah tool berbasis terminal untuk mengelola akun VPN, backup data, dan mengontrol service ZiVPN. Tersedia dalam mode **menu interaktif** dan **command line langsung**.
 
