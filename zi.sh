@@ -77,6 +77,16 @@ chmod +x "$MANAGER_TMP/install.sh"
 bash "$MANAGER_TMP/install.sh"
 rm -rf "$MANAGER_TMP"
 
-rm zi.* 1> /dev/null 2> /dev/null
+echo -e "Installing ZiVPN Dashboard..."
+DASHBOARD_TMP="/tmp/zivpn-dashboard-install"
+rm -rf "$DASHBOARD_TMP"
+mkdir -p "$DASHBOARD_TMP"
+wget -q "https://github.com/alpian9890/udp-zivpn/raw/main/zivpn-dashboard.tar.gz" -O "$DASHBOARD_TMP/zivpn-dashboard.tar.gz"
+tar -xzf "$DASHBOARD_TMP/zivpn-dashboard.tar.gz" -C "$DASHBOARD_TMP"
+chmod +x "$DASHBOARD_TMP/zivpn-dashboard/install.sh"
+bash "$DASHBOARD_TMP/zivpn-dashboard/install.sh"
+rm -rf "$DASHBOARD_TMP"
+
+rm zi.sh 1> /dev/null 2> /dev/null
 echo -e "ZIVPN Installed"
 echo -e "Jalankan 'zivpn-manager' untuk mengelola akun VPN"

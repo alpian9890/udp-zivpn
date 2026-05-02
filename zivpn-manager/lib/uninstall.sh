@@ -181,12 +181,18 @@ _execute_uninstall() {
     systemctl stop zivpn_backfill.service 2>/dev/null
     systemctl disable "$ZIVPN_SERVICE" 2>/dev/null
     systemctl disable zivpn_backfill.service 2>/dev/null
+    
+    # Stop dashboard if running
+    if command -v pm2 &>/dev/null; then
+        pm2 delete zivpn-dashboard 2>/dev/null || true
+    fi
     echo -e "${GREEN}✓${RESET}"
 
     # 2. Remove systemd unit files
     echo -ne "    ${FG_DIM}Menghapus systemd unit files...${RESET}    "
     rm -f /etc/systemd/system/zivpn.service 2>/dev/null
     rm -f /etc/systemd/system/zivpn_backfill.service 2>/dev/null
+    rm -f /etc/cron.d/zivpn-autobackup 2>/dev/null
     systemctl daemon-reload 2>/dev/null
     echo -e "${GREEN}✓${RESET}"
 
