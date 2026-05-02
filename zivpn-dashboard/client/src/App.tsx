@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { 
   Users, Activity, Server, Clock, 
-  Plus, Trash2, CalendarClock, RefreshCw, AlertCircle, Search, Terminal, Globe, Shield, X, Eye, EyeOff, BarChart3, Settings, Send
+  Plus, Trash2, CalendarClock, RefreshCw, AlertCircle, Search, Terminal, Globe, Shield, X, Eye, EyeOff, BarChart3, Settings, Send, Power
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -181,6 +181,24 @@ function App() {
     }
   };
 
+  const handleToggleService = async () => {
+    const isActive = status?.status === "active";
+    if (!window.confirm(`${isActive ? "Stop" : "Start"} Zivpn service?`)) return;
+    
+    try {
+      if (isActive) {
+        await axios.post(`${API_URL}/service/stop`);
+        alert("Service stopped successfully");
+      } else {
+        await axios.post(`${API_URL}/service/start`);
+        alert("Service started successfully");
+      }
+      fetchData();
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    }
+  };
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUsername) return;
@@ -304,6 +322,13 @@ function App() {
             <button onClick={fetchData} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg flex items-center gap-2 transition-colors border border-slate-700">
               <RefreshCw size={18} />
               Refresh
+            </button>
+            <button 
+              onClick={handleToggleService} 
+              className={`px-4 py-2 ${status?.status === "active" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"} text-white rounded-lg flex items-center gap-2 transition-colors`}
+            >
+              <Power size={18} />
+              {status?.status === "active" ? "Stop Service" : "Start Service"}
             </button>
             <button onClick={handleRestart} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors">
               <Activity size={18} />

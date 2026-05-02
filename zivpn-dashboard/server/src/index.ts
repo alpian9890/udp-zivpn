@@ -256,6 +256,30 @@ app.post("/api/service/restart", async (req, res) => {
   }
 });
 
+app.post("/api/service/start", async (req, res) => {
+  try {
+    if (IS_DEV) {
+      return res.json({ success: true, msg: "DEV: Service started" });
+    }
+    await execAsync("systemctl start zivpn.service");
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/service/stop", async (req, res) => {
+  try {
+    if (IS_DEV) {
+      return res.json({ success: true, msg: "DEV: Service stopped" });
+    }
+    await execAsync("systemctl stop zivpn.service");
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get("/api/settings/telegram", async (req, res) => {
   try {
     let token = "";
