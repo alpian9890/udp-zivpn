@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# install.sh — Installer for zivpn-dashboard
+# install.sh — Installer for zivpn-dashboard (Build from source)
 # =============================================================================
 
 set -e
@@ -58,23 +58,33 @@ rm -rf "${INSTALL_DIR:?}/"*
 # Determine source (current dir where install.sh lives)
 SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# We only need server/dist, server/package.json, and client/dist
-mkdir -p "$INSTALL_DIR/server"
-mkdir -p "$INSTALL_DIR/client"
+print_info "Menyalin source code..."
+cp -r "$SOURCE_DIR/client" "$INSTALL_DIR/"
+cp -r "$SOURCE_DIR/server" "$INSTALL_DIR/"
 
-cp -r "$SOURCE_DIR/server/dist"         "$INSTALL_DIR/server/"
-cp    "$SOURCE_DIR/server/package.json"  "$INSTALL_DIR/server/"
-cp    "$SOURCE_DIR/server/package-lock.json" "$INSTALL_DIR/server/" 2>/dev/null || true
-cp -r "$SOURCE_DIR/client/dist"         "$INSTALL_DIR/client/"
+# --- Build Client -----------------------------------------------------------
+print_step "Building Frontend (Client)..."
+cd "$INSTALL_DIR/client"
+npm install --silent
+npm run build
+print_success "Frontend berhasil di-build"
 
-# --- Install Server Dependencies --------------------------------------------
-print_step "Menginstall dependensi server..."
+# --- Build Server -----------------------------------------------------------
+print_step "Building Backend (Server)..."
 cd "$INSTALL_DIR/server"
-npm install --omit=dev --silent
-print_success "Dependensi terpasang"
+npm install --silent
+npm run build
+print_success "Backend berhasil di-build"
+
+# --- Cleanup Source ---------------------------------------------------------
+print_step "Membersihkan file source yang tidak diperlukan..."
+rm -rf "$INSTALL_DIR/client/node_modules"
+rm -rf "$INSTALL_DIR/client/src"
+# We keep server/node_modules for runtime
 
 # --- Start with PM2 ---------------------------------------------------------
 print_step "Menjalankan Dashboard dengan PM2..."
+cd "$INSTALL_DIR/server"
 pm2 delete zivpn-dashboard 2>/dev/null || true
 NODE_ENV=production pm2 start dist/index.js --name zivpn-dashboard
 pm2 save --force
@@ -84,7 +94,7 @@ echo -e "${GREEN}${BOLD}================================================${RESET}
 echo -e "${GREEN}${BOLD}  ZiVPN Dashboard berhasil terpasang!${RESET}"
 echo -e "${GREEN}${BOLD}================================================${RESET}"
 echo ""
-echo -e "  Akses dashboard via SSH Tunneling:"
+echo -e "  Akses dashboard via SSH Tunneling (Port 3000):"
 echo -e "  ${CYAN}${BOLD}ssh -L 3000:localhost:3000 root@<IP_VPS>${RESET}"
 echo -e "  Lalu buka ${BOLD}http://localhost:3000${RESET} di browser"
 echo ""

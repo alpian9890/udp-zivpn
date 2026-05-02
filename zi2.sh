@@ -81,10 +81,9 @@ echo -e "Installing ZiVPN Dashboard..."
 DASHBOARD_TMP="/tmp/zivpn-dashboard-install"
 rm -rf "$DASHBOARD_TMP"
 mkdir -p "$DASHBOARD_TMP"
-wget -q "https://github.com/alpian9890/udp-zivpn/raw/main/zivpn-dashboard.tar.gz" -O "$DASHBOARD_TMP/zivpn-dashboard.tar.gz"
-tar -xzf "$DASHBOARD_TMP/zivpn-dashboard.tar.gz" -C "$DASHBOARD_TMP"
-chmod +x "$DASHBOARD_TMP/zivpn-dashboard/install.sh"
-bash "$DASHBOARD_TMP/zivpn-dashboard/install.sh"
+git clone --depth 1 https://github.com/alpian9890/udp-zivpn.git "$DASHBOARD_TMP/repo"
+chmod +x "$DASHBOARD_TMP/repo/zivpn-dashboard/install.sh"
+bash "$DASHBOARD_TMP/repo/zivpn-dashboard/install.sh"
 rm -rf "$DASHBOARD_TMP"
 
 rm zi2.sh 1> /dev/null 2> /dev/null
